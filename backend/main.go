@@ -1,21 +1,31 @@
 package main
 
 import (
+	"TimetableSync/models"
 	"TimetableSync/utils"
-	"bytes"
+
+	// "bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
-	"strconv"
-	"strings"
 	"time"
 
-	"golang.org/x/oauth2/google"
-
-	"golang.org/x/oauth2"
+	// "strconv"
+	// "strings"
+	// "time"
+	"os"
 	// "golang.org/x/oauth2/google"
+
+	"github.com/joho/godotenv"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
 	"google.golang.org/api/calendar/v3"
 )
 
@@ -25,321 +35,244 @@ type EventColor struct {
 }
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file.")
+	}
+
 	config := oauth2.Config{
-		ClientID:     ".apps.googleusercontent.com",
-		ClientSecret: "",
-		RedirectURL:  "https://tab.elliee.me",
-		Scopes:       []string{calendar.CalendarEventsScope, calendar.CalendarScope},
-		Endpoint:     google.Endpoint,
-	}
+        ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
+        ClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
+        RedirectURL:  "postmessage",
+        Scopes:       []string{calendar.CalendarEventsScope, calendar.CalendarScope},
+        Endpoint:     google.Endpoint,
+    }
 
-	token := getToken(config)
-	client := config.Client(context.Background(), token)
+	e := echo.New()
+	e.GET("/", func(c echo.Context) error {
+		return c.String(http.StatusOK, "Hello, World!")
+	})
 
-	srv, err := calendar.New(client)
-	if err != nil {
-		log.Fatalf("Unable to create Calendar API service: %v", err)
-	}
-	timetable := getTimetable("COMSCI1")
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: []string{"http://127.0.0.1:5173", "http://localhost:5173"},
+		AllowMethods: []string{http.MethodGet, http.MethodPost},
+		AllowHeaders: []string{"*"},
+	}))
 
-	calendarID := "primary"
-	clearTimetable(srv, calendarID)
+	e.POST("/auth", func(c echo.Context) error {
+		code := c.Request().Header.Get("code")
 
-	var colors []EventColor
-	currentColorId := 0
-
-	for _, event := range timetable {
-		description := "Staff: " + event.Staff + " - Description: " + event.Description
-		color := ""
-		exists := false
-
-		for _, eventColor := range colors {
-			if eventColor.ModuleName == strings.Split(event.Name, "[")[0] {
-				color = eventColor.ColorId
-				exists = true
-				break
-			}
+		var response struct {
+			Success     bool   `json:"success"`
+			Message     string `json:"message,omitempty"`
+			UserData    *echo.Map `json:"data,omitempty"`
 		}
-
-		if !exists {
-			if currentColorId == 12 {
-				currentColorId = 1
-			} else {
-				currentColorId += 1
-			}
-			color = strconv.FormatInt(int64(currentColorId), 10)
-			newColor := EventColor{
-				ModuleName: strings.Split(event.Name, "[")[0] ,
-				ColorId: color,
-			}
-			colors = append(colors, newColor) 
-		}
-
-		newEvent := &calendar.Event{
-			Summary:     event.Name,
-			Description: description,
-			Location:    event.Location,
-			ColorId: color,
-
-			Start: &calendar.EventDateTime{
-				DateTime: event.StartDateTime.Format(time.RFC3339),
-				TimeZone: "UTC",
-			},
-			End: &calendar.EventDateTime{
-				DateTime: event.EndDateTime.Format(time.RFC3339),
-				TimeZone: "UTC",
-			},
-
-			Source: &calendar.EventSource{
-				Title: "DCU (Timetable Sync)",
-				Url: "https://ts.jamesz.dev",
-			},
-		}
-
-		inputtedEvent, err := srv.Events.Insert(calendarID, newEvent).Do()
+		token, err := config.Exchange(context.Background(), code)
 		if err != nil {
-			fmt.Printf("Unable to create event: %v", err)
+			fmt.Println("Error getting token: ", err)
+			response.Success = false
+			response.Message = "Failed to exchange token."
+			return c.JSON(http.StatusBadRequest, response)
+		}
+		
+		userInfo, err := utils.GetGoogleUser(token.AccessToken)
+
+		if err != nil {
+			response.Success = false
+			response.Message = "Failed to retrieve user info from Google API."
+			fmt.Println("Error getting user info: ", err)
+			return c.JSON(http.StatusInternalServerError, response)
 		}
 
-		// Print the event ID if successfully inserted
-		fmt.Printf("Event created: %s\n", inputtedEvent.Id)
-	}
-}
+		var userCollection *mongo.Collection = utils.GetCollections(utils.DB, "users")
 
-func clearTimetable(calendar *calendar.Service, calendarID string) {
-	events, err := calendar.Events.List(calendarID).Do()
-	if err != nil {
-		log.Fatalf("Unable to list events: %v", err)
-	}
+		var user models.User
 
-	fmt.Println("Deleting current events:")
-	if len(events.Items) > 0 {
-		for _, item := range events.Items {
-			if item.Source == nil {
-				continue
-			}
-			if item.Source.Title == "DCU (Timetable Sync)" {
-				err := calendar.Events.Delete(calendarID, item.Id).Do()
-				if err != nil {
-					fmt.Println("Failed to delete event: ", err)
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		dbErr := userCollection.FindOne(ctx, bson.M{"email" : userInfo.Email}).Decode(&user)
+		if dbErr != nil {
+			if dbErr.Error() == "mongo: no documents in result" {
+				newUser := models.User {
+					ID: primitive.NewObjectID(),
+					Email: userInfo.Email,
+					GoogleID: userInfo.ID,
+					FirstName: userInfo.FirstName,
+					UserPicture: userInfo.PictureURL,
+					AccessToken: token.AccessToken,
+					RefreshToken: token.RefreshToken,
+					Expiry: token.Expiry,
 				}
-				fmt.Println("Deleted event: ", item.Id)
+				_, dbErr2 := userCollection.InsertOne(ctx, newUser)
+				response.Success = true
+				response.Message = "Logged in. (NEW USER)"
+				response.UserData = &echo.Map{"data": newUser}
+				
+				if dbErr2 != nil {
+					response.Success = false
+					response.Message = "Database Error."
+					return c.JSON(http.StatusInternalServerError, response)
+				}
+				return c.JSON(http.StatusOK, response)
+			} else {
+				fmt.Println("Failed to find documents:", dbErr.Error())
+				response.Success = false
+				response.Message = "Database Error."
+				return c.JSON(http.StatusInternalServerError, response)
 			}
 		}
-	} else {
-		fmt.Println("No upcoming events found.")
-	}
-}
+		update := bson.M{"$set": bson.M{
+			"access_token": token.AccessToken,
+			"refresh_token": token.RefreshToken,
+			"expires": token.Expiry,
+		}}
+		_, dbErr4 := userCollection.UpdateOne(ctx, bson.M{"email" : userInfo.Email}, update)
+		if dbErr4 != nil {
+			fmt.Println(dbErr4)
+			response.Success = false
+			response.Message = "Database Error."
+			return c.JSON(http.StatusInternalServerError, response)
+		}
+	
+		user.AccessToken = token.AccessToken
+		user.RefreshToken = token.RefreshToken
 
-func getToken(config oauth2.Config) *oauth2.Token {
-	// rawToken, _ := utils.Read("tokens.json")
+		response.Success = true
+		response.Message = "Logged in. (EXISTING USER)"
+		response.UserData = &echo.Map{"data": user}
+		return c.JSON(http.StatusOK, response)
+	})
 
-	// token := &oauth2.Token{
-	// 	AccessToken: rawToken.AccessToken,
-	// 	TokenType: rawToken.TokenType,
-	// 	RefreshToken: rawToken.RefreshToken,
-	// 	Expiry: rawToken.Expiry,
+	e.POST("/save", func(c echo.Context) error {
+		auth := c.Request().Header.Get("Authorization")
+
+		var response struct {
+			Success     bool   `json:"success"`
+			Message     string `json:"message"omitempty`
+		}
+
+		var data models.User
+
+		err := json.NewDecoder(c.Request().Body).Decode(&data)
+		if err != nil {
+			response.Success = false
+			response.Message = "Error decoding request."
+			return c.JSON(http.StatusBadRequest, response)
+		}
+
+		if auth != data.AccessToken {
+			response.Success = false
+			response.Message = "Unauthorized."
+			return c.JSON(http.StatusUnauthorized, response)
+		}
+
+		gUser, gErr := utils.GetGoogleUser(auth)
+		if gErr != nil {
+			fmt.Println(gErr)
+			response.Success = false
+			response.Message = "Google Error. Try re-logging in?"
+			return c.JSON(http.StatusUnauthorized, response)
+		}
+		fmt.Println(gErr)
+		fmt.Println(gUser)
+		fmt.Println(data.Email)
+		if gUser.Email != data.Email {
+			response.Success = false
+			response.Message = "Access token doesn't match email. Try re-logging in?"
+			return c.JSON(http.StatusUnauthorized, response)
+		}
+
+		fmt.Println(data)
+		var userCollection *mongo.Collection = utils.GetCollections(utils.DB, "users")
+
+
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		dbRes := userCollection.FindOneAndReplace(ctx, bson.M{"email" : data.Email, "_id": data.ID, "google_id": data.GoogleID}, data)
+		if dbRes.Err() != nil {
+			fmt.Println(dbRes.Err())
+			response.Success = false
+			response.Message = "Database Error."
+			return c.JSON(http.StatusUnauthorized, response)
+		}
+
+
+		response.Success = true
+		response.Message = "Saved to database"
+		return c.JSON(http.StatusOK, response)
+	})
+
+	e.Logger.Fatal(e.Start(":1323"))
+
+	// token := getToken(config)
+	// client := config.Client(context.Background(), token)
+
+	// srv, err := calendar.New(client)
+	// if err != nil {
+	// 	log.Fatalf("Unable to create Calendar API service: %v", err)
 	// }
+	// timetable := getTimetable("COMSCI1")
 
-	authUrl := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
-	fmt.Printf("Go to the following link in your browser, then type the "+
-		"authorization code: \n%v\n", authUrl)
+	// calendarID := "primary"
+	// clearTimetable(srv, calendarID)
 
-	var authCode string
-	if _, err := fmt.Scan(&authCode); err != nil {
-		log.Fatalf("Unable to read authorization code: %v", err)
-	}
+	// var colors []EventColor
+	// currentColorId := 0
 
-	token, err := config.Exchange(context.TODO(), authCode)
-	fmt.Println(token)
-	utils.Save(token, "tokens.json")
-	if err != nil {
-		log.Fatalf("Unable to retrieve token from web: %v", err)
-	}
-	return token
-}
+	// for _, event := range timetable {
+	// 	description := "Staff: " + event.Staff + " - Description: " + event.Description
+	// 	color := ""
+	// 	exists := false
 
-type Timetable struct {
-	Name          string
-	StartDateTime time.Time
-	EndDateTime   time.Time
-	Location      string
-	Description   string
-	Staff         string
-}
+	// 	for _, eventColor := range colors {
+	// 		if eventColor.ModuleName == strings.Split(event.Name, "[")[0] {
+	// 			color = eventColor.ColorId
+	// 			exists = true
+	// 			break
+	// 		}
+	// 	}
 
-// function returns timetable from given course code from current time to next 2 weeks
-func getTimetable(courseCode string) []Timetable {
-	var returnedTimetable []Timetable
+	// 	if !exists {
+	// 		if currentColorId == 12 {
+	// 			currentColorId = 1
+	// 		} else {
+	// 			currentColorId += 1
+	// 		}
+	// 		color = strconv.FormatInt(int64(currentColorId), 10)
+	// 		newColor := EventColor{
+	// 			ModuleName: strings.Split(event.Name, "[")[0] ,
+	// 			ColorId: color,
+	// 		}
+	// 		colors = append(colors, newColor)
+	// 	}
 
-	url := "https://scientia-eu-v4-api-d1-03.azurewebsites.net/api/Public/CategoryTypes/Categories/Events/Filter/a1fdee6b-68eb-47b8-b2ac-a4c60c8e6177?startRange=2023-10-02&endRange=2023-10-06"
+	// 	newEvent := &calendar.Event{
+	// 		Summary:     event.Name,
+	// 		Description: description,
+	// 		Location:    event.Location,
+	// 		ColorId: color,
 
-	// request body conversion from Node.JS to Go with aid of ChatGPT V3.5
-	requestBody := map[string]interface{}{
-		"ViewOptions": map[string]interface{}{
-			"Days": []map[string]interface{}{
-				{"Name": "Monday", "DayOfWeek": 1, "IsDefault": true},
-				{"Name": "Tuesday", "DayOfWeek": 2, "IsDefault": true},
-				{"Name": "Wednesday", "DayOfWeek": 3, "IsDefault": true},
-				{"Name": "Thursday", "DayOfWeek": 4, "IsDefault": true},
-				{"Name": "Friday", "DayOfWeek": 5, "IsDefault": true},
-			},
-			"Weeks": []interface{}{},
-			"TimePeriods": []map[string]interface{}{
-				{"Description": "All Day", "StartTime": "00:00", "EndTime": "23:59", "IsDefault": true},
-			},
-			"DatePeriods": []map[string]interface{}{
-				{
-					"Description":   "This Week",
-					"StartDateTime": "2023-09-11T00:00:00+00:00",
-					"EndDateTime":   "2024-09-08T00:00:00+00:00",
-					"IsDefault":     true,
-					"Type":          nil,
-					"Weeks":         []map[string]interface{}{},
-				},
-			},
-		},
-		"CategoryTypesWithIdentities": []map[string]interface{}{
-			{
-				"CategoryTypeIdentity": "241e4d36-60e0-49f8-b27e-99416745d98d",
-				"CategoryIdentities":   []string{"db214724-e16c-82a1-8b07-5edb97d78f2d"},
-			},
-		},
-		"FetchBookings":       false,
-		"FetchPersonalEvents": false,
-		"PersonalIdentities":  []interface{}{},
-	}
+	// 		Start: &calendar.EventDateTime{
+	// 			DateTime: event.StartDateTime.Format(time.RFC3339),
+	// 			TimeZone: "UTC",
+	// 		},
+	// 		End: &calendar.EventDateTime{
+	// 			DateTime: event.EndDateTime.Format(time.RFC3339),
+	// 			TimeZone: "UTC",
+	// 		},
 
-	requestBodyBytes, err := json.Marshal(requestBody)
-	if err != nil {
-		println("[getTimetable] Error creating request body: ", err)
-		return nil
-	}
-	req, err2 := http.NewRequest("POST", url, bytes.NewBuffer(requestBodyBytes))
-	if err2 != nil {
-		println("[getTimetable] Error creating request: ", err)
-		return nil
-	}
-	req.Header.Set("accept", "application/json, text/plain, */*")
-	req.Header.Set("accept-language", "en-US,en;q=0.9")
-	req.Header.Set("authorization", "Anonymous")
-	req.Header.Set("cache-control", "no-cache")
-	req.Header.Set("pragma", "no-cache")
-	req.Header.Set("content-type", "application/json")
+	// 		Source: &calendar.EventSource{
+	// 			Title: "DCU (Timetable Sync)",
+	// 			Url: "https://ts.jamesz.dev",
+	// 		},
+	// 	}
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	// 	inputtedEvent, err := srv.Events.Insert(calendarID, newEvent).Do()
+	// 	if err != nil {
+	// 		fmt.Printf("Unable to create event: %v", err)
+	// 	}
 
-	if err != nil {
-		fmt.Println("[getTimetable] Error sending request: ", err)
-		return nil
-	}
-
-	defer resp.Body.Close()
-
-	// Decode the response JSON
-	var data map[string]interface{}
-	err = json.NewDecoder(resp.Body).Decode(&data)
-	if err != nil {
-		fmt.Println("Error decoding JSON:", err)
-		return nil
-	}
-
-	categoryEvents, ok := data["CategoryEvents"].([]interface{})
-	if !ok || len(categoryEvents) == 0 {
-		fmt.Println("[getTimetable] No CategoryEvents found in the response.")
-		return nil
-	}
-
-	results, ok := categoryEvents[0].(map[string]interface{})["Results"].([]interface{})
-	// results, ok := data["Results"].([]interface{})
-	if !ok || len(categoryEvents) == 0 {
-		fmt.Println("[getTimetable] No Results found in the response.")
-		return nil
-	}
-
-	for _, event := range results {
-		event, ok := event.(map[string]interface{})
-		if !ok {
-			fmt.Println("Invalid event format")
-			continue
-		}
-
-		name, ok := event["Name"].(string)
-		if !ok {
-			name = "N/A"
-		}
-		location, ok := event["Location"].(string)
-		if !ok {
-			location = "N/A"
-		}
-		description, ok := event["Description"].(string)
-		if !ok {
-			description = "N/A"
-		}
-
-		staff, ok := event["ExtraProperties"].([]interface{})
-		var staffName string
-		if ok {
-			staffName, err = extractStaffMemberName(staff)
-			if err != nil {
-				staffName = err.Error()
-			}
-
-		} else {
-			staffName = "DCU Staff Member"
-		}
-
-		startTimeStr, ok := event["StartDateTime"].(string)
-		if !ok {
-			startTimeStr = "N/A"
-		}
-		endDateTimeStr, ok := event["EndDateTime"].(string)
-		if !ok {
-			endDateTimeStr = "N/A"
-		}
-
-		// fmt.Println(name, location, staffName, description, startTimeStr, endDateTimeStr)
-		// fmt.Println(" ")
-
-		timeFormat := "2006-01-02T15:04:05-07:00"
-		startTime, stErr := time.Parse(timeFormat, startTimeStr)
-		endTime, etErr := time.Parse(timeFormat, endDateTimeStr)
-		if stErr != nil || etErr != nil {
-			fmt.Println("[TIMETABLE TIME ERROR]", name, stErr, etErr)
-			continue
-		}
-
-		entry := Timetable{
-			Name:          name,
-			Location:      location,
-			Description:   description,
-			Staff:         staffName,
-			StartDateTime: startTime,
-			EndDateTime:   endTime,
-		}
-		returnedTimetable = append(returnedTimetable, entry)
-
-	}
-
-	return returnedTimetable
-
-}
-
-func extractStaffMemberName(extraProperties []interface{}) (string, error) {
-	for _, property := range extraProperties {
-		propertyMap, ok := property.(map[string]interface{})
-		if !ok {
-			return "", fmt.Errorf("ExtraProperties item has incorrect format")
-		}
-
-		displayName, displayNameExists := propertyMap["DisplayName"].(string)
-		value, valueExists := propertyMap["Value"].(string)
-
-		if displayNameExists && displayName == "Staff Member" && valueExists {
-			return value, nil
-		}
-	}
-
-	return "", fmt.Errorf("Staff Member Name not found")
+	// 	// Print the event ID if successfully inserted
+	// 	fmt.Printf("Event created: %s\n", inputtedEvent.Id)
+	// }
 }
