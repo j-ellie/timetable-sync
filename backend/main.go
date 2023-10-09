@@ -50,9 +50,9 @@ func main() {
 	})
 
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{"http://127.0.0.1:5173", "http://localhost:5173"},
-		AllowMethods: []string{http.MethodGet, http.MethodPost},
-		AllowHeaders: []string{"*"},
+		AllowOrigins: []string{"http://127.0.0.1:5173", "http://localhost:5173", "https://ts.jamesz.dev"},
+		AllowMethods: []string{http.MethodGet, http.MethodPost, http.MethodDelete},
+		AllowHeaders: []string{"*", "Authorization"},
 	}))
 
 	e.POST("/auth", func(c echo.Context) error {
@@ -245,7 +245,7 @@ func main() {
 			return c.JSON(http.StatusUnauthorized, response)
 		}
 
-		syncErr := SyncTimetable(config, data.AccessToken, data.RefreshToken, data.Expiry, data.Email, data.CourseCode)
+		syncErr := utils.SyncTimetable(config, data.AccessToken, data.RefreshToken, data.Expiry, data.Email, data.CourseCode)
 		if (syncErr != nil) {
 			response.Success = false
 			response.Message = "Failed to Sync. Error: " + syncErr.Error()
@@ -253,6 +253,58 @@ func main() {
 
 		response.Success = true
 		response.Message = "Synced your Timetable"
+		return c.JSON(http.StatusOK, response)
+	})
+
+	e.DELETE("/delete", func(c echo.Context) error {
+		auth := c.Request().Header.Get("Authorization")
+
+		var response struct {
+			Success     bool   `json:"success"`
+			Message     string `json:"message"omitempty`
+		}
+
+		var data models.User
+
+		err := json.NewDecoder(c.Request().Body).Decode(&data)
+		if err != nil {
+			response.Success = false
+			response.Message = "Error decoding request."
+			return c.JSON(http.StatusBadRequest, response)
+		}
+
+		if auth != data.AccessToken {
+			response.Success = false
+			response.Message = "Unauthorized."
+			return c.JSON(http.StatusUnauthorized, response)
+		}
+
+		gUser, gErr := utils.GetGoogleUser(auth)
+		if gErr != nil {
+			fmt.Println(gErr)
+			response.Success = false
+			response.Message = "Google Error. Try re-logging in?"
+			return c.JSON(http.StatusUnauthorized, response)
+		}
+
+		if gUser.Email != data.Email {
+			response.Success = false
+			response.Message = "Access token doesn't match email. Try re-logging in?"
+			return c.JSON(http.StatusUnauthorized, response)
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		userCollection := utils.GetCollections(utils.DB, "users")
+		dbErr := userCollection.FindOneAndDelete(ctx, bson.M{"email": data.Email, "access_token": data.AccessToken, "google_id": data.GoogleID, "_id": data.ID})
+		if (dbErr.Err() != nil) {
+			response.Success = false
+			response.Message = "Failed to delete. Error: " + dbErr.Err().Error()
+		}
+
+		response.Success = true
+		response.Message = "Deleted successfully. Sad to see you go :("
 		return c.JSON(http.StatusOK, response)
 	})
 

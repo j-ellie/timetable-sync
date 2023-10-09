@@ -2,6 +2,7 @@ import { Box, Text, Heading, Select, FormLabel, Switch, FormControl, Tooltip, Bu
 import React, { useState, useEffect } from 'react'
 import { QuestionIcon } from "@chakra-ui/icons"
 import { googleLogout } from '@react-oauth/google'
+import DeleteAccount from '../components/DeleteAccount'
 
 export default function LoggingIn({ setSignIn, data }) {
   const toast = useToast()
@@ -10,7 +11,7 @@ export default function LoggingIn({ setSignIn, data }) {
     "COMSCI1",
   ]
 
-  const apiEndpoint = "http://localhost:1323";
+  const apiEndpoint = "https://api-ts.jamesz.dev";
 
   const logout = () => {
     googleLogout()
@@ -186,7 +187,7 @@ export default function LoggingIn({ setSignIn, data }) {
         {/* maybe include loading here?? */}
         <Button colorScheme='green' w="100%" onClick={save} isDisabled={processing}>Save</Button>
         <Button colorScheme='blue' w="100%" mt={4} onClick={sync} isDisabled={processing}>Sync Now</Button>
-        <Button colorScheme='red' w="100%" mt={4} isDisabled={processing}>Stop Syncing</Button>
+        <DeleteAccount processing={processing} setProcessing={setProcessing} setSignIn={setSignIn} formData={formData} apiEndpoint={apiEndpoint} />
     </Box>
   )
 }

@@ -232,7 +232,8 @@ func clearTimetable(calendar *calendar.Service, calendarID string) {
 			if item.Source == nil {
 				continue
 			}
-			currentTime := time.Now()
+			// currentTime := time.Now()
+			currentTime := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
 			eventStart := item.Start.DateTime
 			format := time.RFC3339
 			eventTimeCode, _ := time.Parse(format, eventStart)
