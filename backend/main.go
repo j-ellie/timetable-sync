@@ -3,6 +3,7 @@ package main
 import (
 	"TimetableSync/models"
 	"TimetableSync/utils"
+	"strings"
 
 	// "bytes"
 	"context"
@@ -28,11 +29,6 @@ import (
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/calendar/v3"
 )
-
-type EventColor struct {
-	ModuleName string
-	ColorId    string
-}
 
 func main() {
 	err := godotenv.Load()
@@ -196,9 +192,67 @@ func main() {
 			return c.JSON(http.StatusUnauthorized, response)
 		}
 
+		if strings.HasPrefix(data.LastSync.String(), "0") {
+			err := utils.SyncTimetable(config, data.AccessToken, data.RefreshToken, data.Expiry, data.Email, data.CourseCode)
+			if (err != nil) {
+				response.Success = false
+				response.Message = "Settings were saved, but failed to sync timetable."
+			}
+		}
+
 
 		response.Success = true
 		response.Message = "Saved to database"
+		return c.JSON(http.StatusOK, response)
+	})
+
+	e.POST("/sync", func(c echo.Context) error {
+		auth := c.Request().Header.Get("Authorization")
+
+		var response struct {
+			Success     bool   `json:"success"`
+			Message     string `json:"message"omitempty`
+		}
+
+		var data models.User
+
+		err := json.NewDecoder(c.Request().Body).Decode(&data)
+		if err != nil {
+			response.Success = false
+			response.Message = "Error decoding request."
+			return c.JSON(http.StatusBadRequest, response)
+		}
+
+		if auth != data.AccessToken {
+			response.Success = false
+			response.Message = "Unauthorized."
+			return c.JSON(http.StatusUnauthorized, response)
+		}
+
+		gUser, gErr := utils.GetGoogleUser(auth)
+		if gErr != nil {
+			fmt.Println(gErr)
+			response.Success = false
+			response.Message = "Google Error. Try re-logging in?"
+			return c.JSON(http.StatusUnauthorized, response)
+		}
+		// fmt.Println(gErr)
+		// fmt.Println(gUser)
+		// fmt.Println(data.Email)
+		if gUser.Email != data.Email {
+			response.Success = false
+			response.Message = "Access token doesn't match email. Try re-logging in?"
+			return c.JSON(http.StatusUnauthorized, response)
+		}
+
+		syncErr := SyncTimetable(config, data.AccessToken, data.RefreshToken, data.Expiry, data.Email, data.CourseCode)
+		if (syncErr != nil) {
+			response.Success = false
+			response.Message = "Failed to Sync. Error: " + syncErr.Error()
+		}
+
+		response.Success = true
+		response.Message = "Synced your Timetable"
 		return c.JSON(http.StatusOK, response)
 	})
 

@@ -2,11 +2,20 @@ package utils
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
+	"strconv"
+	"strings"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"golang.org/x/oauth2"
+	"google.golang.org/api/calendar/v3"
 )
 
 
@@ -19,11 +28,26 @@ type Timetable struct {
 	Staff         string
 }
 
+type EventColor struct {
+	ModuleName string
+	ColorId    string
+}
+
+func getTime() (time.Time, time.Time) {
+	currentTime := time.Now()
+	twoWeeks := currentTime.AddDate(0,0,14)
+	return currentTime, twoWeeks
+}
+
+
 // function returns timetable from given course code from current time to next 2 weeks
-func getTimetable(courseCode string, userEmail string, userToken string) []Timetable {
+func getTimetable(courseCode string) []Timetable {
 	var returnedTimetable []Timetable
 
-	url := os.Getenv("DCU_TIMETABLE_BASE") + "?startRange=2023-10-02&endRange=2023-10-06"
+	currentTime, twoWeeks := getTime()
+	timeFormat := "2006-01-02"
+
+	url := os.Getenv("DCU_TIMETABLE_BASE") + "?startRange="+ currentTime.Format(timeFormat) + "&endRange=" + twoWeeks.Format(timeFormat)
 
 	// request body conversion from Node.JS to Go with aid of ChatGPT V3.5
 	requestBody := map[string]interface{}{
@@ -50,6 +74,7 @@ func getTimetable(courseCode string, userEmail string, userToken string) []Timet
 				},
 			},
 		},
+		// this is where the program of study is defined (TODO)
 		"CategoryTypesWithIdentities": []map[string]interface{}{
 			{
 				"CategoryTypeIdentity": "241e4d36-60e0-49f8-b27e-99416745d98d",
@@ -175,4 +200,151 @@ func getTimetable(courseCode string, userEmail string, userToken string) []Timet
 
 	return returnedTimetable
 
+}
+
+func extractStaffMemberName(extraProperties []interface{}) (string, error) {
+	for _, property := range extraProperties {
+		propertyMap, ok := property.(map[string]interface{})
+		if !ok {
+			return "", fmt.Errorf("ExtraProperties item has incorrect format")
+		}
+
+		displayName, displayNameExists := propertyMap["DisplayName"].(string)
+		value, valueExists := propertyMap["Value"].(string)
+
+		if displayNameExists && displayName == "Staff Member" && valueExists {
+			return value, nil
+		}
+	}
+
+	return "", fmt.Errorf("Staff Member Name not found")
+}
+
+func clearTimetable(calendar *calendar.Service, calendarID string) {
+	events, err := calendar.Events.List(calendarID).Do()
+	if err != nil {
+		log.Fatalf("Unable to list events: %v", err)
+	}
+
+	fmt.Println("Deleting current events:")
+	if len(events.Items) > 0 {
+		for _, item := range events.Items {
+			if item.Source == nil {
+				continue
+			}
+			currentTime := time.Now()
+			eventStart := item.Start.DateTime
+			format := time.RFC3339
+			eventTimeCode, _ := time.Parse(format, eventStart)
+			if eventTimeCode.Before(currentTime) {
+				continue
+			}
+			if item.Source.Title == "DCU (Timetable Sync)" {
+				err := calendar.Events.Delete(calendarID, item.Id).Do()
+				if err != nil {
+					fmt.Println("Failed to delete event: ", err)
+				}
+				fmt.Println("Deleted event: ", item.Id)
+			}
+		}
+	} else {
+		fmt.Println("No upcoming events found.")
+	}
+}
+
+func SyncTimetable(config oauth2.Config, accessToken string, refreshToken string, tokenExpiry time.Time, userEmail string, courseCode string) error {
+
+	token := oauth2.Token{
+		AccessToken: accessToken,
+		RefreshToken: refreshToken,
+		TokenType: "Bearer",
+		Expiry: tokenExpiry,
+	}
+	client := config.Client(context.Background(), &token)
+
+	srv, err := calendar.New(client)
+	if err != nil {
+		fmt.Printf("Unable to create Calendar API service: %v", err)
+		return err
+	}
+	timetable := getTimetable("COMSCI1")
+
+	calendarID := "primary"
+	clearTimetable(srv, calendarID)
+
+
+	var colors []EventColor
+	currentColorId := 0
+
+	for _, event := range timetable {
+		description := "Staff: " + event.Staff + " - Description: " + event.Description
+		color := ""
+		exists := false
+
+		for _, eventColor := range colors {
+			if eventColor.ModuleName == strings.Split(event.Name, "[")[0] {
+				color = eventColor.ColorId
+				exists = true
+				break
+			}
+		}
+
+		if !exists {
+			if currentColorId == 12 {
+				currentColorId = 1
+			} else {
+				currentColorId += 1
+			}
+			color = strconv.FormatInt(int64(currentColorId), 10)
+			newColor := EventColor{
+				ModuleName: strings.Split(event.Name, "[")[0] ,
+				ColorId: color,
+			}
+			colors = append(colors, newColor)
+		}
+
+		newEvent := &calendar.Event{
+			Summary:     event.Name,
+			Description: description,
+			Location:    event.Location,
+			ColorId: color,
+
+			Start: &calendar.EventDateTime{
+				DateTime: event.StartDateTime.Format(time.RFC3339),
+				TimeZone: "UTC",
+			},
+			End: &calendar.EventDateTime{
+				DateTime: event.EndDateTime.Format(time.RFC3339),
+				TimeZone: "UTC",
+			},
+
+			Source: &calendar.EventSource{
+				Title: "DCU (Timetable Sync)",
+				Url: "https://ts.jamesz.dev",
+			},
+		}
+
+		inputtedEvent, err := srv.Events.Insert(calendarID, newEvent).Do()
+		if err != nil {
+			fmt.Printf("Unable to create event: %v", err)
+			return err
+		}
+
+		// Print the event ID if successfully inserted
+		fmt.Printf("Event created: %s\n", inputtedEvent.Id)
+	}
+	var userCollection *mongo.Collection = GetCollections(DB, "users")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	update := bson.M{"$set": bson.M{
+		"last_sync": time.Now(),
+	}}
+	_, dbErr := userCollection.UpdateOne(ctx, bson.M{"email" : userEmail}, update)
+	if dbErr != nil {
+		fmt.Println(dbErr)
+		return dbErr
+	}
+	return nil
 }

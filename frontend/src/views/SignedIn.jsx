@@ -5,9 +5,12 @@ import { googleLogout } from '@react-oauth/google'
 
 export default function LoggingIn({ setSignIn, data }) {
   const toast = useToast()
+  const [processing, setProcessing] = useState(false)
   const availableCourses = [
     "COMSCI1",
   ]
+
+  const apiEndpoint = "http://localhost:1323";
 
   const logout = () => {
     googleLogout()
@@ -21,7 +24,7 @@ export default function LoggingIn({ setSignIn, data }) {
   const [formData, setFormData] = useState(data.data)
 
   const save = () => {
-    console.log(formData)
+    // console.log(formData)
     if (formData.course_code === "" || formData.sync_time === "" || formData.name === "") {
       toast({
         title: 'Missing required details.',
@@ -32,10 +35,19 @@ export default function LoggingIn({ setSignIn, data }) {
       })
       return;
     }
+    setProcessing(true)
+    toast({
+      title: 'Saving...',
+      description: "Please wait a moment!",
+      status: 'info',
+      duration: 5000,
+      isClosable: true,
+    })
 
-    fetch("http://localhost:1323/save", { method: "POST", body: JSON.stringify(formData), headers: { "Authorization": data.data.access_token }})
+    fetch(apiEndpoint + "/save", { method: "POST", body: JSON.stringify(formData), headers: { "Authorization": data.data.access_token }})
     .then(response => response.json())
     .then(data => {
+      setProcessing(false)
       if (!data.success) {
         console.error(data.message);
         toast({
@@ -56,9 +68,57 @@ export default function LoggingIn({ setSignIn, data }) {
       }
     })
     .catch(error => {
+      setProcessing(false)
       console.error(error);
       toast({
         title: 'Saving Failed.',
+        description: "Unkown Error. (Check Console)",
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      })
+    })
+  }
+
+  const sync = () => {
+    // console.log(formData)
+    setProcessing(true)
+    toast({
+      title: 'Syncing...',
+      description: "Please wait a moment!",
+      status: 'info',
+      duration: 5000,
+      isClosable: true,
+    })
+
+    fetch(apiEndpoint + "/sync", { method: "POST", body: JSON.stringify(formData), headers: { "Authorization": data.data.access_token }})
+    .then(response => response.json())
+    .then(data => {
+      setProcessing(false)
+      if (!data.success) {
+        console.error(data.message);
+        toast({
+          title: 'Syncing Failed.',
+          description: "Error: " + data.message,
+          status: 'error',
+          duration: 5000,
+          isClosable: true,
+        })
+      } else {
+        toast({
+          title: 'Timetable Synced.',
+          description: "You're good to go!",
+          status: 'success',
+          duration: 5000,
+          isClosable: true,
+        })
+      }
+    })
+    .catch(error => {
+      setProcessing(false)
+      console.error(error);
+      toast({
+        title: 'Syncing Failed.',
         description: "Unkown Error. (Check Console)",
         status: 'error',
         duration: 5000,
@@ -123,9 +183,10 @@ export default function LoggingIn({ setSignIn, data }) {
 
         <Text mt={4} mb={4} color="gray.500">Last Synced: {data.data.last_sync.startsWith("0") ? "Never" : data.data.last_sync}</Text>
 
-        <Button colorScheme='green' w="100%" onClick={save}>Save</Button>
-        <Button colorScheme='blue' w="100%" mt={4}>Sync Now</Button>
-        <Button colorScheme='red' w="100%" mt={4}>Stop Syncing</Button>
+        {/* maybe include loading here?? */}
+        <Button colorScheme='green' w="100%" onClick={save} isDisabled={processing}>Save</Button>
+        <Button colorScheme='blue' w="100%" mt={4} onClick={sync} isDisabled={processing}>Sync Now</Button>
+        <Button colorScheme='red' w="100%" mt={4} isDisabled={processing}>Stop Syncing</Button>
     </Box>
   )
 }
