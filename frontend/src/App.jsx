@@ -31,7 +31,8 @@ function App() {
     flow: "auth-code",
     client_id: "603064467469-2u4rh86o1c9t3np5avphpalgv4ia71ql.apps.googleusercontent.com",
     access_type: "offline",
-    redirect_uri: "https://tab.elliee.me/callback"
+    redirect_uri: "https://tab.elliee.me/callback",
+    scope: "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar"
   })
 
   useEffect(() => {
