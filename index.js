@@ -21,5 +21,6 @@ fetch("https://scientia-eu-v4-api-d1-03.azurewebsites.net/api/Public/CategoryTyp
 })
 .then(response => response.json())
 .then(data => {
+    // console.log(data.CategoryEvents)
     console.log(data.CategoryEvents[0].Results)
 })

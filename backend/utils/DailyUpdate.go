@@ -11,4 +11,5 @@ func RunUpdate() error {
 	// if error move on and log to report (maybe email user on error)
 
 	// at the end send a completion report to admins
+	return nil
 }

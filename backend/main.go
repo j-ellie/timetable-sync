@@ -27,7 +27,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
-	"golang.org/x/text/message"
 	"google.golang.org/api/calendar/v3"
 )
 
@@ -194,7 +193,7 @@ func main() {
 		}
 
 		if strings.HasPrefix(data.LastSync.String(), "0") {
-			err := utils.SyncTimetable(config, data.AccessToken, data.RefreshToken, data.Expiry, data.Email, data.CourseCode)
+			err := utils.SyncTimetable(config, data.AccessToken, data.RefreshToken, data.Expiry, data.Email, data.CourseCode, data.EmailNotifications)
 			err2 := utils.SendWelcome(data)
 			if (err2 != nil) {
 				fmt.Println(err2)
@@ -251,7 +250,7 @@ func main() {
 			return c.JSON(http.StatusUnauthorized, response)
 		}
 
-		syncErr := utils.SyncTimetable(config, data.AccessToken, data.RefreshToken, data.Expiry, data.Email, data.CourseCode)
+		syncErr := utils.SyncTimetable(config, data.AccessToken, data.RefreshToken, data.Expiry, data.Email, data.CourseCode, data.EmailNotifications)
 		if (syncErr != nil) {
 			response.Success = false
 			response.Message = "Failed to Sync. Error: " + syncErr.Error()

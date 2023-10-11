@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"TimetableSync/models"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -166,6 +167,18 @@ func getTimetable(courseCode string) []Timetable {
 			staffName = "DCU Staff Member"
 		}
 
+		module, ok := event["ExtraProperties"].([]interface{})
+		var moduleName string
+		if ok {
+			moduleName, err = extractModuleName(module)
+			if err != nil {
+				moduleName = name
+			}
+
+		} else {
+			moduleName = name
+		}
+
 		startTimeStr, ok := event["StartDateTime"].(string)
 		if !ok {
 			startTimeStr = "N/A"
@@ -175,8 +188,6 @@ func getTimetable(courseCode string) []Timetable {
 			endDateTimeStr = "N/A"
 		}
 
-		// fmt.Println(name, location, staffName, description, startTimeStr, endDateTimeStr)
-		// fmt.Println(" ")
 
 		timeFormat := "2006-01-02T15:04:05-07:00"
 		startTime, stErr := time.Parse(timeFormat, startTimeStr)
@@ -187,7 +198,7 @@ func getTimetable(courseCode string) []Timetable {
 		}
 
 		entry := Timetable{
-			Name:          name,
+			Name:          moduleName,
 			Location:      location,
 			Description:   description,
 			Staff:         staffName,
@@ -220,8 +231,28 @@ func extractStaffMemberName(extraProperties []interface{}) (string, error) {
 	return "", fmt.Errorf("Staff Member Name not found")
 }
 
+func extractModuleName(extraProperties []interface{}) (string, error) {
+	for _, property := range extraProperties {
+		propertyMap, ok := property.(map[string]interface{})
+		if !ok {
+			return "", fmt.Errorf("ExtraProperties item has incorrect format")
+		}
+
+		displayName, displayNameExists := propertyMap["DisplayName"].(string)
+		value, valueExists := propertyMap["Value"].(string)
+
+		if displayNameExists && displayName == "Module Name" && valueExists {
+			return value, nil
+		}
+	}
+
+	return "", fmt.Errorf("Module Name not found")
+}
+
 func clearTimetable(calendar *calendar.Service, calendarID string) {
-	events, err := calendar.Events.List(calendarID).Do()
+	format := time.RFC3339
+	current, twoWeeks := getTime()
+	events, err := calendar.Events.List(calendarID).TimeMin(current.Format(format)).TimeMax(twoWeeks.Format(format)).Do()
 	if err != nil {
 		log.Fatalf("Unable to list events: %v", err)
 	}
@@ -235,8 +266,8 @@ func clearTimetable(calendar *calendar.Service, calendarID string) {
 			// currentTime := time.Now()
 			currentTime := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
 			eventStart := item.Start.DateTime
-			format := time.RFC3339
 			eventTimeCode, _ := time.Parse(format, eventStart)
+
 			if eventTimeCode.Before(currentTime) {
 				continue
 			}
@@ -253,7 +284,7 @@ func clearTimetable(calendar *calendar.Service, calendarID string) {
 	}
 }
 
-func SyncTimetable(config oauth2.Config, accessToken string, refreshToken string, tokenExpiry time.Time, userEmail string, courseCode string) error {
+func SyncTimetable(config oauth2.Config, accessToken string, refreshToken string, tokenExpiry time.Time, userEmail string, courseCode string, sendEmail bool) error {
 
 	token := oauth2.Token{
 		AccessToken: accessToken,
@@ -339,6 +370,7 @@ func SyncTimetable(config oauth2.Config, accessToken string, refreshToken string
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+
 	update := bson.M{"$set": bson.M{
 		"last_sync": time.Now(),
 	}}
@@ -347,5 +379,17 @@ func SyncTimetable(config oauth2.Config, accessToken string, refreshToken string
 		fmt.Println(dbErr)
 		return dbErr
 	}
+	
+	if sendEmail == true {
+		var user models.User
+		dbErr := userCollection.FindOne(ctx, bson.M{"email" : userEmail}).Decode(&user)
+
+		emailErr := SendUpdate(user, timetable)
+		if emailErr != nil || dbErr != nil {
+			fmt.Println(emailErr, dbErr)
+			return emailErr
+		}
+	}
+
 	return nil
 }

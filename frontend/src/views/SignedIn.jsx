@@ -11,7 +11,8 @@ export default function LoggingIn({ setSignIn, data }) {
     "COMSCI1",
   ]
 
-  const apiEndpoint = "https://api-ts.jamesz.dev";
+  // const apiEndpoint = "https://api-ts.jamesz.dev";
+  const apiEndpoint = "http://localhost:1323";
 
   const logout = () => {
     googleLogout()
