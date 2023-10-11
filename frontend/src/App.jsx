@@ -49,7 +49,7 @@ function App() {
         isError != null ? (
           <Error error={isError} />
         ) : null
-      }
+      } 
 
       {
         signedIn && !isLoading && isError == null ? (
