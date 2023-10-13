@@ -7,12 +7,13 @@ import (
 
 func main() {
 	currentTime := time.Now()
-	twoWeeks := currentTime.AddDate(0,0,14)
-	// timeTwoWeeks := currentTime.Add(twoWeeks)
-	timeFormat := "2006-01-02"
+	fmt.Println(currentTime.Weekday())
+	// twoWeeks := currentTime.AddDate(0,0,14)
+	// // timeTwoWeeks := currentTime.Add(twoWeeks)
+	// timeFormat := "2006-01-02"
 
-	fmt.Println(currentTime)
-	fmt.Println(twoWeeks)
-	fmt.Println(currentTime.Format(timeFormat))
-	fmt.Println(twoWeeks.Format(timeFormat))
+	// fmt.Println(currentTime)
+	// fmt.Println(twoWeeks)
+	// fmt.Println(currentTime.Format(timeFormat))
+	// fmt.Println(twoWeeks.Format(timeFormat))
 }

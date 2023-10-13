@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -249,12 +248,12 @@ func extractModuleName(extraProperties []interface{}) (string, error) {
 	return "", fmt.Errorf("Module Name not found")
 }
 
-func clearTimetable(calendar *calendar.Service, calendarID string) {
+func clearTimetable(calendar *calendar.Service, calendarID string) error {
 	format := time.RFC3339
 	current, twoWeeks := getTime()
 	events, err := calendar.Events.List(calendarID).TimeMin(current.Format(format)).TimeMax(twoWeeks.Format(format)).Do()
 	if err != nil {
-		log.Fatalf("Unable to list events: %v", err)
+		return fmt.Errorf("Unable to list events: %v", err)
 	}
 
 	fmt.Println("Deleting current events:")
@@ -282,6 +281,7 @@ func clearTimetable(calendar *calendar.Service, calendarID string) {
 	} else {
 		fmt.Println("No upcoming events found.")
 	}
+	return nil
 }
 
 func SyncTimetable(config oauth2.Config, accessToken string, refreshToken string, tokenExpiry time.Time, userEmail string, courseCode string, sendEmail bool) error {
@@ -302,11 +302,17 @@ func SyncTimetable(config oauth2.Config, accessToken string, refreshToken string
 	timetable := getTimetable("COMSCI1")
 
 	calendarID := "primary"
-	clearTimetable(srv, calendarID)
-
+	clearErr := clearTimetable(srv, calendarID)
+	if clearErr != nil {
+		return clearErr
+	}
 
 	var colors []EventColor
 	currentColorId := 0
+
+	if len(timetable) == 0 {
+		return nil
+	}
 
 	for _, event := range timetable {
 		description := "Staff: " + event.Staff + " - Description: " + event.Description

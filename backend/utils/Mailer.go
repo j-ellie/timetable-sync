@@ -84,6 +84,24 @@ func SendUpdate(data models.User, timetableStruct []Timetable) error {
 	return nil
 }
 
+func SendUpdateError(data models.User, problem string) error {
+	htmlContent, err := os.ReadFile("emails/updateFailed.html")
+	if err != nil {
+		return err
+	}
+
+	var formattedString string
+	strContent := string(htmlContent)
+	formattedString = strings.Replace(strContent, "%NAME%", data.FirstName, 1)
+	formattedString = strings.Replace(formattedString, "%ERROR%", problem, 1)
+
+	success, err2 := SendMail("Your timetable failed to sync.", data.FirstName, data.Email, " ", string(formattedString))
+	fmt.Println(success)
+	fmt.Println(err2)
+
+	return nil
+}
+
 func isToday(t time.Time) bool {
 	currentTime := time.Now()
 	if t.Day() == currentTime.Day() && t.Month() == currentTime.Month() && t.Year() == currentTime.Year() {
@@ -91,4 +109,31 @@ func isToday(t time.Time) bool {
 	} else {
 		return false
 	}
+}
+
+// Sends report to TS admins
+func SendUpdateReport(startTime time.Time, syncInfo string, report string) error {
+	htmlContent, err := os.ReadFile("emails/globalUpdateReport.html")
+	if err != nil {
+		return err
+	}
+
+	currentTime := time.Now()
+	duration := currentTime.Sub(startTime)
+	formatTime := fmt.Sprintf("Took %02vh, %02vm, %02vs", duration.Hours(), duration.Minutes(), duration.Seconds())
+
+	var formattedString string
+	strContent := string(htmlContent)
+	formattedString = strings.Replace(strContent, "%STARTTIME%", startTime.String(), 1)
+	formattedString = strings.Replace(formattedString, "%ENDTIME%", time.Now().String(), 1)
+	formattedString = strings.Replace(formattedString, "%TOTALTIME%", formatTime, 1)
+	formattedString = strings.Replace(formattedString, "%USER_SYNC%", syncInfo, 1)
+	formattedString = strings.Replace(formattedString, "%REPORT%", report, 1)
+
+	date := fmt.Sprintf("%02d/%02d/%d", currentTime.Day(), currentTime.Month(), currentTime.Year())
+	success, err2 := SendMail("Global sync report for " + date, "tsadmin", "james@jamesz.dev", " ", string(formattedString))
+	fmt.Println(success)
+	fmt.Println(err2)
+
+	return nil
 }

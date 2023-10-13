@@ -28,7 +28,9 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/calendar/v3"
+	"github.com/go-co-op/gocron"
 )
+
 
 func main() {
 	err := godotenv.Load()
@@ -193,7 +195,7 @@ func main() {
 		}
 
 		if strings.HasPrefix(data.LastSync.String(), "0") {
-			err := utils.SyncTimetable(config, data.AccessToken, data.RefreshToken, data.Expiry, data.Email, data.CourseCode, data.EmailNotifications)
+			err := utils.SyncTimetable(config, data.AccessToken, data.RefreshToken, data.Expiry, data.Email, data.CourseCode, false)
 			err2 := utils.SendWelcome(data)
 			if (err2 != nil) {
 				fmt.Println(err2)
@@ -250,7 +252,7 @@ func main() {
 			return c.JSON(http.StatusUnauthorized, response)
 		}
 
-		syncErr := utils.SyncTimetable(config, data.AccessToken, data.RefreshToken, data.Expiry, data.Email, data.CourseCode, data.EmailNotifications)
+		syncErr := utils.SyncTimetable(config, data.AccessToken, data.RefreshToken, data.Expiry, data.Email, data.CourseCode, false)
 		if (syncErr != nil) {
 			response.Success = false
 			response.Message = "Failed to Sync. Error: " + syncErr.Error()
@@ -312,6 +314,9 @@ func main() {
 		response.Message = "Deleted successfully. Sad to see you go :("
 		return c.JSON(http.StatusOK, response)
 	})
+
+	scheduler := gocron.NewScheduler(time.Local)
+	job, err := scheduler.Every(1).Day().At("8:30").Do(utils.RunUpdate())
 
 	e.Logger.Fatal(e.Start(":1323"))
 
