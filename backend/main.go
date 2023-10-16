@@ -250,7 +250,7 @@ func main() {
 			return c.JSON(http.StatusUnauthorized, response)
 		}
 
-		syncErr := utils.SyncTimetable(config, data.AccessToken, data.RefreshToken, data.Expiry, data.Email, data.CourseCode, false)
+		syncErr := utils.SyncTimetable(config, data.AccessToken, data.RefreshToken, data.Expiry, data.Email, data.CourseCode, true)
 		if (syncErr != nil) {
 			response.Success = false
 			response.Message = "Failed to Sync. Error: " + syncErr.Error()

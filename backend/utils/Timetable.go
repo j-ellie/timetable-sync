@@ -254,7 +254,7 @@ func clearTimetable(calendar *calendar.Service, calendarID string) error {
 	current, twoWeeks := getTime()
 	fmt.Println(current.Format(format), twoWeeks.Format(format))
 	// events, err := calendar.Events.List(calendarID).Do()
-	events, err := calendar.Events.List(calendarID).TimeMin(current.Format(format)).TimeMax(twoWeeks.Format(format)).Do()
+	events, err := calendar.Events.List(calendarID).TimeMin(current.Format(format)).TimeMax(twoWeeks.Format(format)).SingleEvents(true).Do()
 	if err != nil {
 		return fmt.Errorf("Unable to list events: %v", err)
 	}
@@ -262,7 +262,7 @@ func clearTimetable(calendar *calendar.Service, calendarID string) error {
 	fmt.Println("Deleting current events:")
 	if len(events.Items) > 0 {
 		for _, item := range events.Items {
-			fmt.Print(item.Summary)
+			// fmt.Print(item.Summary)
 			// continue
 			if item.Source == nil {
 				continue

@@ -101,7 +101,7 @@ func RunUpdate() error {
 			isSuccess = "FAILURE"
 		}
 
-		addition := fmt.Sprintf("• %s - ID: %s - Course: %s - Error Reason (?): %s", isSuccess, s.ID, s.CourseCode, s.ErrReason)
+		addition := fmt.Sprintf("• %s - ID: %s (%s) - Course: %s - Error Reason (?): %s", isSuccess, s.ID, s.CourseCode, s.ErrReason)
 		report = report + addition + "\n"
 	}
 
