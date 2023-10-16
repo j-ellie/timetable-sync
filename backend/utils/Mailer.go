@@ -120,12 +120,15 @@ func SendUpdateReport(startTime time.Time, syncInfo string, report string) error
 
 	currentTime := time.Now()
 	duration := currentTime.Sub(startTime)
-	formatTime := fmt.Sprintf("Took %02vh, %02vm, %02vs", duration.Hours(), duration.Minutes(), duration.Seconds())
+	hours := int(duration.Hours())
+	mins := int(duration.Minutes()) % 60
+	secs := int(duration.Seconds()) % 60
+	formatTime := fmt.Sprintf("Took %02dh, %02dm, %02ds", hours, mins, secs)
 
 	var formattedString string
 	strContent := string(htmlContent)
-	formattedString = strings.Replace(strContent, "%STARTTIME%", startTime.String(), 1)
-	formattedString = strings.Replace(formattedString, "%ENDTIME%", time.Now().String(), 1)
+	formattedString = strings.Replace(strContent, "%STARTTIME%", startTime.Format(time.RFC850), 1)
+	formattedString = strings.Replace(formattedString, "%ENDTIME%", time.Now().Format(time.RFC850), 1)
 	formattedString = strings.Replace(formattedString, "%TOTALTIME%", formatTime, 1)
 	formattedString = strings.Replace(formattedString, "%USER_SYNC%", syncInfo, 1)
 	formattedString = strings.Replace(formattedString, "%REPORT%", report, 1)

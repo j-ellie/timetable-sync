@@ -16,6 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/calendar/v3"
+	"google.golang.org/api/option"
 )
 
 
@@ -251,6 +252,8 @@ func extractModuleName(extraProperties []interface{}) (string, error) {
 func clearTimetable(calendar *calendar.Service, calendarID string) error {
 	format := time.RFC3339
 	current, twoWeeks := getTime()
+	fmt.Println(current.Format(format), twoWeeks.Format(format))
+	// events, err := calendar.Events.List(calendarID).Do()
 	events, err := calendar.Events.List(calendarID).TimeMin(current.Format(format)).TimeMax(twoWeeks.Format(format)).Do()
 	if err != nil {
 		return fmt.Errorf("Unable to list events: %v", err)
@@ -259,6 +262,8 @@ func clearTimetable(calendar *calendar.Service, calendarID string) error {
 	fmt.Println("Deleting current events:")
 	if len(events.Items) > 0 {
 		for _, item := range events.Items {
+			fmt.Print(item.Summary)
+			// continue
 			if item.Source == nil {
 				continue
 			}
@@ -292,9 +297,11 @@ func SyncTimetable(config oauth2.Config, accessToken string, refreshToken string
 		TokenType: "Bearer",
 		Expiry: tokenExpiry,
 	}
-	client := config.Client(context.Background(), &token)
+	// client := config.Client(context.Background(), &token)
 
-	srv, err := calendar.New(client)
+	ctx := context.Background()
+
+	srv, err := calendar.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx, &token)))
 	if err != nil {
 		fmt.Printf("Unable to create Calendar API service: %v", err)
 		return err

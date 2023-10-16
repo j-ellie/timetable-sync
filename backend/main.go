@@ -4,20 +4,13 @@ import (
 	"TimetableSync/models"
 	"TimetableSync/utils"
 	"strings"
-
-	// "bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"time"
-
-	// "strconv"
-	// "strings"
-	// "time"
 	"os"
-	// "golang.org/x/oauth2/google"
 
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
@@ -30,7 +23,6 @@ import (
 	"google.golang.org/api/calendar/v3"
 	"github.com/go-co-op/gocron"
 )
-
 
 func main() {
 	err := godotenv.Load()
@@ -139,6 +131,12 @@ func main() {
 		response.Message = "Logged in. (EXISTING USER)"
 		response.UserData = &echo.Map{"data": user}
 		return c.JSON(http.StatusOK, response)
+	})
+
+	e.GET("/test", func(c echo.Context) error {
+		err := utils.RunUpdate()
+		fmt.Println(err)
+		return c.JSON(http.StatusOK, bson.M{"okay": true})
 	})
 
 	e.POST("/save", func(c echo.Context) error {
@@ -315,80 +313,10 @@ func main() {
 		return c.JSON(http.StatusOK, response)
 	})
 
+
 	scheduler := gocron.NewScheduler(time.Local)
-	job, err := scheduler.Every(1).Day().At("8:30").Do(utils.RunUpdate())
+	scheduler.Every(1).Day().WaitForSchedule().At("8:30").Do(utils.RunUpdate)
+	scheduler.StartAsync()
 
 	e.Logger.Fatal(e.Start(":1323"))
-
-	// token := getToken(config)
-	// client := config.Client(context.Background(), token)
-
-	// srv, err := calendar.New(client)
-	// if err != nil {
-	// 	log.Fatalf("Unable to create Calendar API service: %v", err)
-	// }
-	// timetable := getTimetable("COMSCI1")
-
-	// calendarID := "primary"
-	// clearTimetable(srv, calendarID)
-
-	// var colors []EventColor
-	// currentColorId := 0
-
-	// for _, event := range timetable {
-	// 	description := "Staff: " + event.Staff + " - Description: " + event.Description
-	// 	color := ""
-	// 	exists := false
-
-	// 	for _, eventColor := range colors {
-	// 		if eventColor.ModuleName == strings.Split(event.Name, "[")[0] {
-	// 			color = eventColor.ColorId
-	// 			exists = true
-	// 			break
-	// 		}
-	// 	}
-
-	// 	if !exists {
-	// 		if currentColorId == 12 {
-	// 			currentColorId = 1
-	// 		} else {
-	// 			currentColorId += 1
-	// 		}
-	// 		color = strconv.FormatInt(int64(currentColorId), 10)
-	// 		newColor := EventColor{
-	// 			ModuleName: strings.Split(event.Name, "[")[0] ,
-	// 			ColorId: color,
-	// 		}
-	// 		colors = append(colors, newColor)
-	// 	}
-
-	// 	newEvent := &calendar.Event{
-	// 		Summary:     event.Name,
-	// 		Description: description,
-	// 		Location:    event.Location,
-	// 		ColorId: color,
-
-	// 		Start: &calendar.EventDateTime{
-	// 			DateTime: event.StartDateTime.Format(time.RFC3339),
-	// 			TimeZone: "UTC",
-	// 		},
-	// 		End: &calendar.EventDateTime{
-	// 			DateTime: event.EndDateTime.Format(time.RFC3339),
-	// 			TimeZone: "UTC",
-	// 		},
-
-	// 		Source: &calendar.EventSource{
-	// 			Title: "DCU (Timetable Sync)",
-	// 			Url: "https://ts.jamesz.dev",
-	// 		},
-	// 	}
-
-	// 	inputtedEvent, err := srv.Events.Insert(calendarID, newEvent).Do()
-	// 	if err != nil {
-	// 		fmt.Printf("Unable to create event: %v", err)
-	// 	}
-
-	// 	// Print the event ID if successfully inserted
-	// 	fmt.Printf("Event created: %s\n", inputtedEvent.Id)
-	// }
 }

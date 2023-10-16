@@ -28,6 +28,10 @@ func RunUpdate() error {
 		return nil
 	}
 
+	if os.Getenv("RUN_AUTO") != "true" {
+		return nil
+	} 
+
 	fails := 0
 
 	// get all documents from the db where sync_time == daily
@@ -85,7 +89,7 @@ func RunUpdate() error {
 		syncs = append(syncs, newFail)
 	}
 
-	synced := fmt.Sprintf("Synced %v/%v users successfully.", fails, len(usersToUpdate))
+	synced := fmt.Sprintf("Synced %v/%v users successfully.", len(usersToUpdate) - fails, len(usersToUpdate))
 
 	var report string
 	

@@ -3,8 +3,10 @@ module TimetableSync
 go 1.19
 
 require (
+	github.com/go-co-op/gocron v1.35.2
 	github.com/joho/godotenv v1.5.1
 	github.com/labstack/echo/v4 v4.11.1
+	github.com/sendgrid/sendgrid-go v3.13.0+incompatible
 	go.mongodb.org/mongo-driver v1.12.1
 	golang.org/x/oauth2 v0.9.0
 	google.golang.org/api v0.47.0
@@ -12,7 +14,6 @@ require (
 
 require (
 	cloud.google.com/go/compute/metadata v0.2.0 // indirect
-	github.com/go-co-op/gocron v1.35.2 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
@@ -26,7 +27,6 @@ require (
 	github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/sendgrid/rest v2.6.9+incompatible // indirect
-	github.com/sendgrid/sendgrid-go v3.13.0+incompatible // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
