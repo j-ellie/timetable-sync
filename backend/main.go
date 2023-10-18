@@ -261,6 +261,27 @@ func main() {
 		return c.JSON(http.StatusOK, response)
 	})
 
+	e.GET("/courses", func(c echo.Context) error {
+		ids, err := utils.GetAllCodes()
+
+		var response struct {
+			Success     bool   `json:"success"`
+			Message     string `json:"message"omitempty`
+			Ids     	[]string `json:"ids"omitempty`
+		}
+
+		if err != nil {
+			response.Success = true
+			response.Message = "Failed to get courses. Error: " + err.Error()
+			return c.JSON(http.StatusInternalServerError, response)
+		}		
+
+		response.Ids = ids
+		response.Success = true
+
+		return c.JSON(http.StatusOK, response)
+	})
+
 	e.DELETE("/delete", func(c echo.Context) error {
 		auth := c.Request().Header.Get("Authorization")
 

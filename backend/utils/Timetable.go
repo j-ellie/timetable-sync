@@ -45,6 +45,14 @@ func getTime() (time.Time, time.Time) {
 func getTimetable(courseCode string) []Timetable {
 	var returnedTimetable []Timetable
 
+	courseId, categoryId, cErr := GetCourseId(courseCode)
+	if cErr != nil {
+		fmt.Println("Failed to convert course code: ", cErr)
+		return nil
+	}
+
+	fmt.Println(courseId, categoryId)
+
 	currentTime, twoWeeks := getTime()
 	timeFormat := "2006-01-02"
 
@@ -78,8 +86,8 @@ func getTimetable(courseCode string) []Timetable {
 		// this is where the program of study is defined (TODO)
 		"CategoryTypesWithIdentities": []map[string]interface{}{
 			{
-				"CategoryTypeIdentity": "241e4d36-60e0-49f8-b27e-99416745d98d",
-				"CategoryIdentities":   []string{"db214724-e16c-82a1-8b07-5edb97d78f2d"},
+				"CategoryTypeIdentity": categoryId,
+				"CategoryIdentities":   []string{courseId},
 			},
 		},
 		"FetchBookings":       false,
@@ -300,13 +308,33 @@ func SyncTimetable(config oauth2.Config, accessToken string, refreshToken string
 	// client := config.Client(context.Background(), &token)
 
 	ctx := context.Background()
+// ERROR!!
+	tokSource := config.TokenSource(ctx, &token)
+	readyToken, tokErr := tokSource.Token()
+	if tokErr != nil {
+		return tokErr
+	}
+	if readyToken.AccessToken != token.AccessToken {
+		update := bson.M{"$set": bson.M{
+			"access_token": readyToken.AccessToken,
+			"refresh_token": readyToken.RefreshToken,
+			"expires": readyToken.Expiry,
+		}}
+		var userCollection *mongo.Collection = GetCollections(DB, "users")
+		_, dbErr4 := userCollection.UpdateOne(ctx, bson.M{"email" : userEmail}, update)
+		if dbErr4 != nil {
+			fmt.Println(dbErr4)
+			return dbErr4
+		}
+	}
 
-	srv, err := calendar.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx, &token)))
+	srv, err := calendar.NewService(ctx, option.WithTokenSource(tokSource))
+	
 	if err != nil {
 		fmt.Printf("Unable to create Calendar API service: %v", err)
 		return err
 	}
-	timetable := getTimetable("COMSCI1")
+	timetable := getTimetable(courseCode)
 
 	calendarID := "primary"
 	clearErr := clearTimetable(srv, calendarID)

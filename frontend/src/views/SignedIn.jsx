@@ -1,18 +1,46 @@
-import { Box, Text, Heading, Select, FormLabel, Switch, FormControl, Tooltip, Button, Link, Input, Avatar, Center, useToast } from '@chakra-ui/react'
+import { Box, Text, Heading, Select, FormLabel, Switch, FormControl, Tooltip, Button, Link, Input, Avatar, Center, useToast, InputGroup, InputLeftElement } from '@chakra-ui/react'
 import React, { useState, useEffect } from 'react'
 import { QuestionIcon } from "@chakra-ui/icons"
 import { googleLogout } from '@react-oauth/google'
 import DeleteAccount from '../components/DeleteAccount'
 
 export default function LoggingIn({ setSignIn, data }) {
-  const toast = useToast()
-  const [processing, setProcessing] = useState(false)
-  const availableCourses = [
-    "COMSCI1",
-  ]
-
   // const apiEndpoint = "https://api-ts.jamesz.dev";
   const apiEndpoint = "http://localhost:1323";
+  const toast = useToast()
+  const [processing, setProcessing] = useState(false)
+  const [availableCourses, setCourses] = useState([]) 
+  // const availableCourses = [
+  //   "COMSCI1",
+  // ]
+
+  useEffect(() => {
+    fetch(apiEndpoint + "/courses")
+    .then(response => response.json())
+    .then(data => {
+      if (!data.success) {
+        toast({
+          title: 'Failed to fetch courses.',
+          description: "Couldn't get courses from api. Error:" + err.toString(),
+          status: 'error',
+          duration: 5000,
+          isClosable: true,
+        })
+        return;
+      } else {
+        setCourses(data.ids)
+      }
+    })
+    .catch(err => {
+      toast({
+        title: 'Failed to fetch courses.',
+        description: "Couldn't get courses from api. Error:" + err.toString(),
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      })
+    })
+  }, [])
 
   const logout = () => {
     googleLogout()
@@ -141,9 +169,13 @@ export default function LoggingIn({ setSignIn, data }) {
   const handleFreqChange = (e) => {
     setFormData({...formData, sync_time: e.target.value})
   }
+  const handleIgnoredChange = (e) => {
+    return;
+    // setFormData({...formData, sync_time: e.target.value})
+  }
 
   return (
-    <Box bgColor="gray.200" borderRadius="2em" width="30em" height="45em" p={3}>
+    <Box bgColor="gray.200" borderRadius="2em" width="30em" height="45em" p={3} maxHeight="100vh">
         <Center>
           <Avatar mt={4} size="lg" name={formData.name} src={formData.user_picture} />
         </Center>
@@ -179,6 +211,18 @@ export default function LoggingIn({ setSignIn, data }) {
         <FormControl display='flex' alignItems='center' mt={1} mb={4}>
         <Input id="preferredName" placeholder={data.data.name} bgColor="gray.100" mr={1} onChange={handleNameChange} />
         <Tooltip label="If you'd like to use a different name to what is on your DCU email then you can put it here :)" fontSize='md'>
+          <QuestionIcon />
+        </Tooltip>
+        </FormControl>
+
+        <Text mt={4}>Ignored Events</Text>
+        <FormControl display='flex' alignItems='center' mt={1} mb={4}>
+        <InputGroup>
+          {/* <InputLeftElement></InputLeftElement> */}
+          <Input id="ignoredEvents" bgColor="gray.100" mr={1} onChange={handleIgnoredChange} disabled value="Work In Progress :)"/>
+        </InputGroup>
+
+        <Tooltip label="If you would like to exclude certain events from your timetable (e.g Tutorial Groups that are not yours), then add the name here." fontSize='md'>
           <QuestionIcon />
         </Tooltip>
         </FormControl>

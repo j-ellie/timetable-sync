@@ -17,4 +17,5 @@ type User struct {
 	CourseCode string `json:"course_code" bson:"course_code"omitempty`
 	SyncTime string `json:"sync_time" bson:"sync_time"omitempty`
 	EmailNotifications bool `json:"email_notif" bson:"email_notif"omitempty`
+	IgnoredEvents []string `json:"ignore_events" bson:"ignore_events"omitempty`
 }
