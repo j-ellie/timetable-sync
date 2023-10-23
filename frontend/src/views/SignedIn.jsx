@@ -5,8 +5,8 @@ import { googleLogout } from '@react-oauth/google'
 import DeleteAccount from '../components/DeleteAccount'
 
 export default function LoggingIn({ setSignIn, data }) {
-  // const apiEndpoint = "https://api-ts.jamesz.dev";
-  const apiEndpoint = "http://localhost:1323";
+  const apiEndpoint = "https://api-ts.jamesz.dev";
+  // const apiEndpoint = "http://localhost:1323";
   const toast = useToast()
   const [processing, setProcessing] = useState(false)
   const [availableCourses, setCourses] = useState([]) 
@@ -175,7 +175,7 @@ export default function LoggingIn({ setSignIn, data }) {
   }
 
   return (
-    <Box bgColor="gray.200" borderRadius="2em" width="30em" height="45em" p={3} maxHeight="100vh">
+    <Box bgColor="gray.200" borderRadius="2em" width="30em" height="50em" p={3}>
         <Center>
           <Avatar mt={4} size="lg" name={formData.name} src={formData.user_picture} />
         </Center>
