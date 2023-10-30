@@ -318,7 +318,7 @@ func SyncTimetable(config oauth2.Config, accessToken string, refreshToken string
 		update := bson.M{"$set": bson.M{
 			"access_token": readyToken.AccessToken,
 			"refresh_token": readyToken.RefreshToken,
-			"expires": readyToken.Expiry,
+			"expiry": readyToken.Expiry,
 		}}
 		var userCollection *mongo.Collection = GetCollections(DB, "users")
 		_, dbErr4 := userCollection.UpdateOne(ctx, bson.M{"email" : userEmail}, update)

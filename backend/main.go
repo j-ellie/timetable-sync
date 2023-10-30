@@ -114,7 +114,7 @@ func main() {
 		update := bson.M{"$set": bson.M{
 			"access_token": token.AccessToken,
 			"refresh_token": token.RefreshToken,
-			"expires": token.Expiry,
+			"expiry": token.Expiry,
 		}}
 		_, dbErr4 := userCollection.UpdateOne(ctx, bson.M{"email" : userInfo.Email}, update)
 		if dbErr4 != nil {
