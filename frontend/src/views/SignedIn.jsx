@@ -1,5 +1,5 @@
-import { Box, Text, Heading, Select, FormLabel, Switch, FormControl, Tooltip, Button, Link, Input, Avatar, Center, useToast, InputGroup, InputLeftElement } from '@chakra-ui/react'
-import React, { useState, useEffect } from 'react'
+import { Box, Text, Heading, Select, FormLabel, Switch, FormControl, Tooltip, Button, Link, Input, Avatar, Center, useToast, InputGroup, InputRightElement, UnorderedList, ListItem } from '@chakra-ui/react'
+import React, { useState, useEffect, useRef } from 'react'
 import { QuestionIcon } from "@chakra-ui/icons"
 import { googleLogout } from '@react-oauth/google'
 import DeleteAccount from '../components/DeleteAccount'
@@ -10,6 +10,11 @@ export default function LoggingIn({ setSignIn, data }) {
   const toast = useToast()
   const [processing, setProcessing] = useState(false)
   const [availableCourses, setCourses] = useState([]) 
+  const ignoreInput = useRef(null)
+  const [deleteMode, setDeleteMode] = useState(false)
+  const [loadedCourses, setLoadedCourses] = useState(false)
+
+  const [localIgnores, setLocalIgnores] = useState(["MS134[1]OC/T1/04 GrpA", "MS134[1]OC/T1/04 GrpD"])
   // const availableCourses = [
   //   "COMSCI1",
   // ]
@@ -29,6 +34,7 @@ export default function LoggingIn({ setSignIn, data }) {
         return;
       } else {
         setCourses(data.ids)
+        setLoadedCourses(true)
       }
     })
     .catch(err => {
@@ -40,7 +46,7 @@ export default function LoggingIn({ setSignIn, data }) {
         isClosable: true,
       })
     })
-  }, [])
+  }, [!loadedCourses])
 
   const logout = () => {
     googleLogout()
@@ -170,8 +176,31 @@ export default function LoggingIn({ setSignIn, data }) {
     setFormData({...formData, sync_time: e.target.value})
   }
   const handleIgnoredChange = (e) => {
-    return;
+    // console.log("handling ignore change")
+    // console.log(ignoreInput.current.value)
+    // let newIgnores = localIgnores
+    // newIgnores.push(ignoreInput.current.value)
+    // console.log(newIgnores)
+    if (!deleteMode) {
+      setLocalIgnores([...localIgnores, ignoreInput.current.value])
+      ignoreInput.current.value = null
+    } else {
+      const updatedIgnores = localIgnores.filter(item => item !== ignoreInput.current.value)
+      setLocalIgnores(updatedIgnores)
+      ignoreInput.current.value = null
+      setDeleteMode(false)
+    }
     // setFormData({...formData, sync_time: e.target.value})
+  }
+
+
+  const checkIfDelete = (e) => {
+    const val = e.target.value
+    if (localIgnores.includes(val)) {
+      setDeleteMode(true)
+    } else [
+      setDeleteMode(false)
+    ]
   }
 
   return (
@@ -216,10 +245,21 @@ export default function LoggingIn({ setSignIn, data }) {
         </FormControl>
 
         <Text mt={4}>Ignored Events</Text>
+        <Text fontSize="xs">Currently ignoring: {localIgnores.join(", ")}</Text>
+        {/* <UnorderedList>
+              {localIgnores.map(ignore => (
+                <ListItem fontSize="xs">{ignore}</ListItem>
+              ))}
+        </UnorderedList> */}
         <FormControl display='flex' alignItems='center' mt={1} mb={4}>
         <InputGroup>
-          {/* <InputLeftElement></InputLeftElement> */}
-          <Input id="ignoredEvents" bgColor="gray.100" mr={1} onChange={handleIgnoredChange} disabled value="Work In Progress :)"/>
+            <InputRightElement width='4.5rem'>
+              <Button h='1.75rem' size='sm' onClick={handleIgnoredChange}>
+                {deleteMode ? "Remove" : "Add"}
+              </Button>
+            </InputRightElement>
+
+          <Input id="ignoredEvents" bgColor="gray.100" mr={1} ref={ignoreInput} onChange={checkIfDelete} placeholder="MS134[1]OC/T1/04 GrpA"/>
         </InputGroup>
 
         <Tooltip label="If you would like to exclude certain events from your timetable (e.g Tutorial Groups that are not yours), then add the name here." fontSize='md'>
