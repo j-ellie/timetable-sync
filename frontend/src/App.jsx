@@ -65,7 +65,7 @@ function App() {
       {
         !isLoading && !signedIn && isError == null ? (
           <>
-            <VStack>
+            <VStack m={2}>
               <Heading>Timetable Sync</Heading>
               <Text mt={2}>The easy way to sync your DCU timetable on Google Calendar.</Text>
               <Text>To get started, just log in with Google using the button below and change the settings to your likings!</Text>

@@ -1,4 +1,4 @@
-import { Box, Text, Heading, Select, FormLabel, Switch, FormControl, Tooltip, Button, Link, Input, Avatar, Center, useToast, InputGroup, InputRightElement, UnorderedList, ListItem } from '@chakra-ui/react'
+import { Box, Text, Heading, Select, FormLabel, Switch, FormControl, Tooltip, Button, Link, Input, Avatar, Center, useToast, InputGroup, InputRightElement, HStack } from '@chakra-ui/react'
 import React, { useState, useEffect, useRef } from 'react'
 import { QuestionIcon } from "@chakra-ui/icons"
 import { googleLogout } from '@react-oauth/google'
@@ -14,12 +14,10 @@ export default function LoggingIn({ setSignIn, data }) {
   const [deleteMode, setDeleteMode] = useState(false)
   const [loadedCourses, setLoadedCourses] = useState(false)
 
-  const [localIgnores, setLocalIgnores] = useState(["MS134[1]OC/T1/04 GrpA", "MS134[1]OC/T1/04 GrpD"])
-  // const availableCourses = [
-  //   "COMSCI1",
-  // ]
+  const [localIgnores, setLocalIgnores] = useState([])
 
   useEffect(() => {
+    if (loadedCourses) return;
     fetch(apiEndpoint + "/courses")
     .then(response => response.json())
     .then(data => {
@@ -33,6 +31,7 @@ export default function LoggingIn({ setSignIn, data }) {
         })
         return;
       } else {
+        setCourses([])
         setCourses(data.ids)
         setLoadedCourses(true)
       }
@@ -46,7 +45,13 @@ export default function LoggingIn({ setSignIn, data }) {
         isClosable: true,
       })
     })
-  }, [!loadedCourses])
+  }, [])
+
+  useEffect(() => {
+    if (!data) return;
+
+    setLocalIgnores(data.data.ignore_events)
+  }, [data]);
 
   const logout = () => {
     googleLogout()
@@ -176,26 +181,32 @@ export default function LoggingIn({ setSignIn, data }) {
     setFormData({...formData, sync_time: e.target.value})
   }
   const handleIgnoredChange = (e) => {
-    // console.log("handling ignore change")
-    // console.log(ignoreInput.current.value)
-    // let newIgnores = localIgnores
-    // newIgnores.push(ignoreInput.current.value)
-    // console.log(newIgnores)
     if (!deleteMode) {
-      setLocalIgnores([...localIgnores, ignoreInput.current.value])
+      if (!localIgnores) {
+        setLocalIgnores([ignoreInput.current.value])
+        let sysIgnores = formData.ignore_events == null ? [] : formData.ignore_events;
+        sysIgnores.push(ignoreInput.current.value)
+        setFormData({...formData, ignore_events: sysIgnores})
+      } else {
+        setLocalIgnores([...localIgnores, ignoreInput.current.value])
+        let sysIgnores = formData.ignore_events == null ? [] : formData.ignore_events;
+        sysIgnores.push(ignoreInput.current.value)
+        setFormData({...formData, ignore_events: sysIgnores})
+      }
       ignoreInput.current.value = null
     } else {
       const updatedIgnores = localIgnores.filter(item => item !== ignoreInput.current.value)
       setLocalIgnores(updatedIgnores)
+      setFormData({...formData, ignore_events: updatedIgnores})
       ignoreInput.current.value = null
       setDeleteMode(false)
     }
-    // setFormData({...formData, sync_time: e.target.value})
   }
 
 
   const checkIfDelete = (e) => {
     const val = e.target.value
+    if (!localIgnores) return;
     if (localIgnores.includes(val)) {
       setDeleteMode(true)
     } else [
@@ -204,14 +215,14 @@ export default function LoggingIn({ setSignIn, data }) {
   }
 
   return (
-    <Box bgColor="gray.200" borderRadius="2em" width="30em" height="50em" p={3}>
+    <Box bgColor="gray.200" borderRadius="2em" width="30em" height="em" p={3} pb={5} maxHeight="95vh">
         <Center>
           <Avatar mt={4} size="lg" name={formData.name} src={formData.user_picture} />
         </Center>
         <Heading mt={2} textAlign="center">Hey {data.data.name}!</Heading>
         <Text mt={1} fontSize="small" textAlign="center">Not you? <span style={{ textDecoration: "underline", cursor: "pointer" }} onClick={() => logout()}>Logout</span></Text>
 
-        <Text mt={4}>Select your course...</Text>
+        <Text>Select your course...</Text>
         <Select mt={2} placeholder='Select Course' bgColor="gray.100" value={formData.course_code === "" ? "Select Course" : formData.course_code} onChange={handleCourseChange}>
             {availableCourses.map((course) => (
                 <option key={course} value={course}>{course}</option>
@@ -219,14 +230,14 @@ export default function LoggingIn({ setSignIn, data }) {
         </Select>
         <Text mt={1} fontSize="x-small">Course not listed? Email: <Link href="mailto:james@jamesz.dev">james@jamesz.dev</Link></Text>
 
-        <Text mt={4}>Update Frequency:</Text>
+        <Text mt={2}>Update Frequency:</Text>
         <Select mt={2} placeholder='Select Frequency' bgColor="gray.100" value={formData.sync_time === "" ? "Select Frequency" : formData.sync_time} onChange={handleFreqChange}>
           <option value="daily">Daily (8:30 am)</option>
           <option value="once">Only this one time</option>
 
         </Select>
 
-        <FormControl display='flex' alignItems='center' mt={4}>
+        <FormControl display='flex' alignItems='center' mt={2}>
         <FormLabel htmlFor='email-alerts' mb='0'>
           Enable email alerts?
         </FormLabel>
@@ -236,21 +247,16 @@ export default function LoggingIn({ setSignIn, data }) {
         </Tooltip>
         </FormControl>
 
-        <Text mt={4}>Preferred Name</Text>
+        <Text mt={2}>Preferred Name</Text>
         <FormControl display='flex' alignItems='center' mt={1} mb={4}>
-        <Input id="preferredName" placeholder={data.data.name} bgColor="gray.100" mr={1} onChange={handleNameChange} />
+        <Input id="preferredName" defaultValue={data.data.name} bgColor="gray.100" mr={1} onChange={handleNameChange} />
         <Tooltip label="If you'd like to use a different name to what is on your DCU email then you can put it here :)" fontSize='md'>
           <QuestionIcon />
         </Tooltip>
         </FormControl>
 
-        <Text mt={4}>Ignored Events</Text>
-        <Text fontSize="xs">Currently ignoring: {localIgnores.join(", ")}</Text>
-        {/* <UnorderedList>
-              {localIgnores.map(ignore => (
-                <ListItem fontSize="xs">{ignore}</ListItem>
-              ))}
-        </UnorderedList> */}
+        <Text mt={2}>Ignored Events</Text>
+        <Text fontSize="xs">Currently ignoring: {!localIgnores || localIgnores.length === 0 ? "None" : localIgnores.join(", ")}</Text>
         <FormControl display='flex' alignItems='center' mt={1} mb={4}>
         <InputGroup>
             <InputRightElement width='4.5rem'>
@@ -267,12 +273,14 @@ export default function LoggingIn({ setSignIn, data }) {
         </Tooltip>
         </FormControl>
 
-        <Text mt={4} mb={4} color="gray.500">Last Synced: {data.data.last_sync.startsWith("0") ? "Never" : data.data.last_sync}</Text>
+        <Text mt={2} mb={2} color="gray.500">Last Synced: {data.data.last_sync.startsWith("0") ? "Never" : data.data.last_sync}</Text>
 
         {/* maybe include loading here?? */}
         <Button colorScheme='green' w="100%" onClick={save} isDisabled={processing}>Save</Button>
-        <Button colorScheme='blue' w="100%" mt={4} onClick={sync} isDisabled={processing}>Sync Now</Button>
-        <DeleteAccount processing={processing} setProcessing={setProcessing} setSignIn={setSignIn} formData={formData} apiEndpoint={apiEndpoint} />
+        <HStack>
+          <Button colorScheme='blue' w="100%" mt={4} onClick={sync} isDisabled={processing}>Sync Now</Button>
+          <DeleteAccount processing={processing} setProcessing={setProcessing} setSignIn={setSignIn} formData={formData} apiEndpoint={apiEndpoint} />
+        </HStack>
     </Box>
   )
 }

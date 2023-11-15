@@ -40,7 +40,7 @@ func main() {
 
 	e := echo.New()
 	e.GET("/", func(c echo.Context) error {
-		return c.String(http.StatusOK, "Hello, World!")
+		return c.String(http.StatusOK, "Timetable Sync API Responsive.")
 	})
 
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
@@ -133,12 +133,6 @@ func main() {
 		return c.JSON(http.StatusOK, response)
 	})
 
-	e.GET("/test", func(c echo.Context) error {
-		err := utils.RunUpdate()
-		fmt.Println(err)
-		return c.JSON(http.StatusOK, bson.M{"okay": true})
-	})
-
 	e.POST("/save", func(c echo.Context) error {
 		auth := c.Request().Header.Get("Authorization")
 
@@ -151,6 +145,7 @@ func main() {
 
 		err := json.NewDecoder(c.Request().Body).Decode(&data)
 		if err != nil {
+			fmt.Println(err)
 			response.Success = false
 			response.Message = "Error decoding request."
 			return c.JSON(http.StatusBadRequest, response)
@@ -193,7 +188,7 @@ func main() {
 		}
 
 		if strings.HasPrefix(data.LastSync.String(), "0") {
-			err := utils.SyncTimetable(config, data.AccessToken, data.RefreshToken, data.Expiry, data.Email, data.CourseCode, false)
+			err := utils.SyncTimetable(config, data.AccessToken, data.RefreshToken, data.Expiry, data.Email, data.CourseCode, false, data.IgnoredEvents)
 			err2 := utils.SendWelcome(data)
 			if (err2 != nil) {
 				fmt.Println(err2)
@@ -241,16 +236,14 @@ func main() {
 			response.Message = "Google Error. Try re-logging in?"
 			return c.JSON(http.StatusUnauthorized, response)
 		}
-		// fmt.Println(gErr)
-		// fmt.Println(gUser)
-		// fmt.Println(data.Email)
+
 		if gUser.Email != data.Email {
 			response.Success = false
 			response.Message = "Access token doesn't match email. Try re-logging in?"
 			return c.JSON(http.StatusUnauthorized, response)
 		}
 
-		syncErr := utils.SyncTimetable(config, data.AccessToken, data.RefreshToken, data.Expiry, data.Email, data.CourseCode, true)
+		syncErr := utils.SyncTimetable(config, data.AccessToken, data.RefreshToken, data.Expiry, data.Email, data.CourseCode, true, data.IgnoredEvents)
 		if (syncErr != nil) {
 			response.Success = false
 			response.Message = "Failed to Sync. Error: " + syncErr.Error()

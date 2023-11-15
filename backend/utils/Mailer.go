@@ -68,6 +68,10 @@ func SendUpdate(data models.User, timetableStruct []Timetable) error {
 		}
 	}
 
+	if timetableString == "" {
+		return nil
+	}
+
 	var formattedString string
 	strContent := string(htmlContent)
 	formattedString = strings.Replace(strContent, "%NAME%", data.FirstName, 1)

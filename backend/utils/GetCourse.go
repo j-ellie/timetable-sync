@@ -31,7 +31,6 @@ func GetAllCodes() ([]string, error) {
 	for _, course := range courses {
 		ids = append(ids, course.ID)
 	}
-	fmt.Println(ids)
 	return ids, nil
 }
 

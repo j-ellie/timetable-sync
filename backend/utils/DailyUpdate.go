@@ -68,7 +68,7 @@ func RunUpdate() error {
 	}
 
 	for _, user := range usersToUpdate {
-		err := SyncTimetable(config, user.AccessToken, user.RefreshToken, user.Expiry, user.Email, user.CourseCode, user.EmailNotifications)
+		err := SyncTimetable(config, user.AccessToken, user.RefreshToken, user.Expiry, user.Email, user.CourseCode, user.EmailNotifications, user.IgnoredEvents)
 		var newFail SyncUpdate
 		if err != nil {
 			newFail = SyncUpdate {

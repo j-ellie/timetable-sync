@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -40,9 +41,8 @@ func getTime() (time.Time, time.Time) {
 	return currentTime, twoWeeks
 }
 
-
 // function returns timetable from given course code from current time to next 2 weeks
-func getTimetable(courseCode string) []Timetable {
+func getTimetable(courseCode string, ignoredEvents []string) []Timetable {
 	var returnedTimetable []Timetable
 
 	courseId, categoryId, cErr := GetCourseId(courseCode)
@@ -213,8 +213,14 @@ func getTimetable(courseCode string) []Timetable {
 			StartDateTime: startTime,
 			EndDateTime:   endTime,
 		}
-		returnedTimetable = append(returnedTimetable, entry)
-
+		
+		if entry.StartDateTime.Before(time.Now()) {
+			continue
+		} else if contains(ignoredEvents, name) == true {
+			continue 
+		} else {
+			returnedTimetable = append(returnedTimetable, entry)
+		}
 	}
 
 	return returnedTimetable
@@ -297,7 +303,7 @@ func clearTimetable(calendar *calendar.Service, calendarID string) error {
 	return nil
 }
 
-func SyncTimetable(config oauth2.Config, accessToken string, refreshToken string, tokenExpiry time.Time, userEmail string, courseCode string, sendEmail bool) error {
+func SyncTimetable(config oauth2.Config, accessToken string, refreshToken string, tokenExpiry time.Time, userEmail string, courseCode string, sendEmail bool, ignoredEvents []string) error {
 
 	token := oauth2.Token{
 		AccessToken: accessToken,
@@ -334,7 +340,7 @@ func SyncTimetable(config oauth2.Config, accessToken string, refreshToken string
 		fmt.Printf("Unable to create Calendar API service: %v", err)
 		return err
 	}
-	timetable := getTimetable(courseCode)
+	timetable := getTimetable(courseCode, ignoredEvents)
 
 	calendarID := "primary"
 	clearErr := clearTimetable(srv, calendarID)
@@ -422,6 +428,14 @@ func SyncTimetable(config oauth2.Config, accessToken string, refreshToken string
 	}
 	
 	if sendEmail == true {
+		if len(timetable) == 0 {
+			return nil
+		}
+
+		sort.SliceStable(timetable, func(i, j int) bool {
+			return timetable[i].StartDateTime.Before(timetable[j].StartDateTime)
+		})	
+
 		var user models.User
 		dbErr := userCollection.FindOne(ctx, bson.M{"email" : userEmail}).Decode(&user)
 

@@ -116,7 +116,10 @@ func getCoursePage(page int) []Course {
 			CategoryTypeIdentity: categoryIdentity,
 		}
 
-		courses = append(courses, newCourse)
+		if !contains(courses, newCourse.ID) {
+			courses = append(courses, newCourse)
+		} 
+
 		// log.Fatalln(event)
 
 
@@ -156,4 +159,13 @@ func getTotalPages() float64 {
 	pages := totalPages.(float64)
 	// pages, _ := fmt.Fprintf("%v", totalPages)
 	return pages
+}
+
+func contains(lst []Course, elem string) bool {
+	for _, a := range lst {
+		if a.ID == elem {
+			return true
+		}
+	}
+	return false
 }
