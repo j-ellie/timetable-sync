@@ -70,7 +70,7 @@ function App() {
               <Text mt={2}>The easy way to sync your DCU timetable on Google Calendar.</Text>
               <Text>To get started, just log in with Google using the button below and change the settings to your likings!</Text>
               <Image mt={3} mb={3} src="/demo.png" h="300px" borderRadius="1em" alt="Example of synced timetable." />
-              <Button onClick={() => { login() }} isDisabled={false}>
+              <Button onClick={() => { login() }} isDisabled={true}>
                 Sign in with Google
               </Button>
             </VStack>
