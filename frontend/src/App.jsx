@@ -5,10 +5,12 @@ import { GoogleLogin, useGoogleLogin } from '@react-oauth/google'
 import SignedIn from './views/SignedIn';
 import LoggingIn from './views/LoggingIn';
 import Error from './views/Error';
+import Privacy from './views/Privacy';
 
 function App() {
   const [signedIn, setSignIn] = useState(false);
   const [isLoading, setLoading] = useState(false);
+  const [showPrivacy, setPrivacy] = useState(false);
   const [isError, setError] = useState(null);
   const [data, setData] = useState(null);
 
@@ -40,10 +42,19 @@ function App() {
     if (params.get("error") != null) {
       setError(params.get("error"))
     }
+
+    if (window.location.pathname === "/privacy") {
+      setPrivacy(true)
+    }
   }, [])
  
   return (
     <>
+      {
+        showPrivacy ? (
+          <Privacy />   
+        ) : null 
+      }
       <Center height="97vh">
       {
         isError != null ? (
@@ -52,18 +63,18 @@ function App() {
       } 
 
       {
-        signedIn && !isLoading && isError == null ? (
+        signedIn && !isLoading && isError == null && !showPrivacy ? (
           <SignedIn setSignIn={setSignIn} data={data} />   
         ) : null 
       }
       {
-        isLoading && !signedIn && isError == null ? (
+        isLoading && !signedIn && isError == null && !showPrivacy ? (
           <LoggingIn />   
         ) : null
       }
 
       {
-        !isLoading && !signedIn && isError == null ? (
+        !isLoading && !signedIn && isError == null && !showPrivacy ? (
           <>
             <VStack m={2}>
               <Heading>Timetable Sync</Heading>
@@ -79,7 +90,10 @@ function App() {
       }
       
       </Center>
-      <footer><Text textAlign="center" fontSize="sm">Timetable Sync is not affiliated with DCU. Made by <a href="https://jamesz.dev" target='_blank' style={{ textDecoration: "underline", fontWeight: "bold"}}>James</a></Text></footer>
+      <footer>
+        <Text textAlign="center" fontSize="sm">Timetable Sync is not affiliated with DCU. Made by <a href="https://jamesz.dev" target='_blank' style={{ textDecoration: "underline", fontWeight: "bold"}}>James</a> </Text>
+        <Text textAlign="center" fontSize="sm">By using this app, you agree to our Read our: <a href="/privacy" style={{ textDecoration: "underline", fontWeight: "bold"}}>Privacy Policy</a></Text>
+        </footer>
     </>
   )
 }
