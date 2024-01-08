@@ -5,7 +5,7 @@ export default function Privacy() {
 
   return (
     <Center h="100vh" pt="20em">
-    <Box ml={5} mr={5} width="600px" >
+    <Box ml={5} mr={5} width="600px" height="fit-content">
         <Heading mt={5} textAlign="center">Privacy Policy for Timetable Sync</Heading>
         <Divider mt={3} mb={5} borderWidth={1} />
 
@@ -36,7 +36,8 @@ export default function Privacy() {
 
        <Divider mt={3} mb={5} borderWidth={1} />
 
-       <Text>Last Updated: 11th Dec 2023</Text>    
+       <Text>Last Updated: 11th Dec 2023</Text>
+       <Text><a href="/" style={{ textDecoration: "underline" }}>Back Home</a></Text>
 
     </Box>
 
