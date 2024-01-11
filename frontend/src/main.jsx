@@ -9,11 +9,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ChakraProvider>
       <GoogleOAuthProvider clientId="603064467469-2u4rh86o1c9t3np5avphpalgv4ia71ql.apps.googleusercontent.com">
-        {/* <Alert status='error'>
+        <Alert status='info'>
           <AlertIcon />
-          <AlertTitle>Timetable Sync is unavailable at this time.</AlertTitle>
-          <AlertDescription>Due to an ISP issue, Timetable Sync is down until further notice. Sorry :(</AlertDescription>
-        </Alert> */}
+          <AlertTitle>Merry Christmas!</AlertTitle>
+          <AlertDescription>Timetable Sync is on a Christmas Break. Don't worry, we'll be back next semester, with some cool new changes too! Enjoy the time off college, see you soon :)</AlertDescription>
+        </Alert>
         <App />
       </GoogleOAuthProvider>
     </ChakraProvider>

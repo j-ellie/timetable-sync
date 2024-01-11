@@ -5,10 +5,14 @@ import { GoogleLogin, useGoogleLogin } from '@react-oauth/google'
 import SignedIn from './views/SignedIn';
 import LoggingIn from './views/LoggingIn';
 import Error from './views/Error';
+import Privacy from './views/Privacy';
+import RoomSearch from './views/RoomSearch';
 
 function App() {
   const [signedIn, setSignIn] = useState(false);
   const [isLoading, setLoading] = useState(false);
+  const [showPrivacy, setPrivacy] = useState(false);
+  const [showRooms, setRooms] = useState(false);
   const [isError, setError] = useState(null);
   const [data, setData] = useState(null);
 
@@ -40,30 +44,45 @@ function App() {
     if (params.get("error") != null) {
       setError(params.get("error"))
     }
+
+    if (window.location.pathname === "/privacy") {
+      setPrivacy(true)
+    } else if (window.location.pathname === "/room-checker") {
+      setRooms(true)
+    }
   }, [])
  
   return (
     <>
+      {
+        showPrivacy ? (
+          <Privacy />   
+        ) : null 
+      }
       <Center height="97vh">
       {
         isError != null ? (
           <Error error={isError} />
         ) : null
-      } 
-
+      }
       {
-        signedIn && !isLoading && isError == null ? (
+        showRooms ? (
+          <RoomSearch />   
+        ) : null 
+      }
+      {
+        signedIn && !isLoading && isError == null && !showPrivacy && !showRooms ? (
           <SignedIn setSignIn={setSignIn} data={data} />   
         ) : null 
       }
       {
-        isLoading && !signedIn && isError == null ? (
+        isLoading && !signedIn && isError == null && !showPrivacy && !showRooms ? (
           <LoggingIn />   
         ) : null
       }
 
       {
-        !isLoading && !signedIn && isError == null ? (
+        !isLoading && !signedIn && isError == null && !showPrivacy && !showRooms ? (
           <>
             <VStack m={2}>
               <Heading>Timetable Sync</Heading>
@@ -73,13 +92,19 @@ function App() {
               <Button onClick={() => { login() }} isDisabled={false}>
                 Sign in with Google
               </Button>
+              <Button colorScheme="orange" onClick={() => { window.location.href = "/room-checker" }} isDisabled={false}>
+                Room Checker
+              </Button>
             </VStack>
           </>
         ) : null
       }
       
       </Center>
-      <footer><Text textAlign="center" fontSize="sm">Timetable Sync is not affiliated with DCU. Made by <a href="https://jamesz.dev" target='_blank' style={{ textDecoration: "underline", fontWeight: "bold"}}>James</a></Text></footer>
+      <footer>
+        <Text textAlign="center" fontSize="sm">Timetable Sync is not affiliated with DCU. Made by <a href="https://jamesz.dev" target='_blank' style={{ textDecoration: "underline", fontWeight: "bold"}}>James</a> </Text>
+        <Text textAlign="center" fontSize="sm">By using this app, you agree to our: <a href="/privacy" style={{ textDecoration: "underline", fontWeight: "bold"}}>Privacy Policy</a></Text>
+        </footer>
     </>
   )
 }
