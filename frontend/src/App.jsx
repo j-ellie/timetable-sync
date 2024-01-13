@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import './App.css'
-import { Center, Text, Image, Button, Heading, VStack } from '@chakra-ui/react'
+import { Center, Text, Image, Button, Heading, VStack, Icon } from '@chakra-ui/react'
 import { GoogleLogin, useGoogleLogin } from '@react-oauth/google'
 import SignedIn from './views/SignedIn';
 import LoggingIn from './views/LoggingIn';
 import Error from './views/Error';
 import Privacy from './views/Privacy';
 import RoomSearch from './views/RoomSearch';
+import { FcGoogle } from "react-icons/fc";
 
 function App() {
   const [signedIn, setSignIn] = useState(false);
@@ -89,8 +90,8 @@ function App() {
               <Text mt={2}>The easy way to sync your DCU timetable on Google Calendar.</Text>
               <Text>To get started, just log in with Google using the button below and change the settings to your likings!</Text>
               <Image mt={3} mb={3} src="/demo.png" h="300px" borderRadius="1em" alt="Example of synced timetable." />
-              <Button onClick={() => { login() }} isDisabled={false}>
-                Sign in with Google
+              <Button colorScheme="blue" onClick={() => { login() }} isDisabled={false}>
+                <Icon as={FcGoogle} fontSize="3xl" mr={3} bgColor="white" p={1} borderRadius="50px" /> Sign in with Google
               </Button>
               <Button colorScheme="orange" onClick={() => { window.location.href = "/room-checker" }} isDisabled={false}>
                 Room Checker

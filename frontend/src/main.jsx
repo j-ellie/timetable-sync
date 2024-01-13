@@ -9,10 +9,10 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ChakraProvider>
       <GoogleOAuthProvider clientId="603064467469-2u4rh86o1c9t3np5avphpalgv4ia71ql.apps.googleusercontent.com">
-        <Alert status='info'>
+        <Alert status='success'>
           <AlertIcon />
-          <AlertTitle>Merry Christmas!</AlertTitle>
-          <AlertDescription>Timetable Sync is on a Christmas Break. Don't worry, we'll be back next semester, with some cool new changes too! Enjoy the time off college, see you soon :)</AlertDescription>
+          <AlertTitle>Happy New Year!</AlertTitle>
+          <AlertDescription>Welcome back! We are ready to sync your Semester 2 timetable! Just log in below. ALSO! Check out our new <a href="/room-checker" style={{ textDecoration: "underline", fontWeight: "bold"}}>Room Availability Checker</a></AlertDescription>
         </Alert>
         <App />
       </GoogleOAuthProvider>

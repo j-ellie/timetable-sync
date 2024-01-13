@@ -11,10 +11,23 @@ import (
 
 type Room struct {
 	Name string `json:"name"`
-	Number string `json:"number"`
 	ID string `json:"id"`
-	Description string `json:"description"`
 	Available bool `json:"available"`
+}
+
+type Event struct {
+	Began time.Time `json:"began"`
+	Ends time.Time `json:"ends"`
+	Description string `json:"description"`
+	Module string `json:"module"`
+}
+
+type Returnable struct {
+	RoomID string `json:"id"`
+	Available bool `json:"available"`
+	Until time.Time `json:"until"`
+	OccupiedBy Event `json:"occupiedBy"`
+	NextEvent Event `json:"nextEvent"`
 }
 
 type StoredRoom struct {
@@ -25,21 +38,30 @@ type StoredRoom struct {
 }
 
 func getTodayTime() (time.Time, time.Time) {
-	currentTime := time.Now()
+	currentTime := time.Now().AddDate(0, 0, 5)
 	tomorrow := currentTime.AddDate(0,0,1)
 	return currentTime, tomorrow
 }
 
-func GetRoom(targetRoom string) (Room, error){
+func GetRoom(targetRoom string, targetTime string) (Returnable, error){
+	parseTimeFormat := "Mon Jan 02 2006 @ 15:04:05"
+
 	var identity string
 	var categoryIdentity string
 
-	currentTime, tomorrow := getTodayTime()
+	// currentTime, tomorrow := getTodayTime()
 	timeFormat := "2006-01-02"
 
-	jsonFile, err := os.Open("rooms.json")
+	parsedTime, err := time.Parse(parseTimeFormat, targetTime)
 	if err != nil {
-		return Room{}, err
+		return Returnable{}, err
+	}
+
+	fmt.Println(targetRoom, parsedTime)
+
+	jsonFile, err := os.Open("lists/rooms.json")
+	if err != nil {
+		return Returnable{}, err
 	}
 
 	defer jsonFile.Close()
@@ -48,7 +70,7 @@ func GetRoom(targetRoom string) (Room, error){
 	decoder := json.NewDecoder(jsonFile)
 	err = decoder.Decode(&storedRooms)
 	if err != nil {
-		return Room{}, err
+		return Returnable{}, err
 	}
 	for _, room := range storedRooms {
 		if room.ID == targetRoom {
@@ -58,9 +80,15 @@ func GetRoom(targetRoom string) (Room, error){
 		}
 	}
 
+	if identity == "" || categoryIdentity == "" {
+		return Returnable{}, fmt.Errorf("Room does not exist.")
+	}
+
 	fmt.Println(identity, categoryIdentity)
+
+	// fmt.Println(currentTime, tomorrow)
 	
-	url := "https://scientia-eu-v4-api-d1-03.azurewebsites.net/api/Public/CategoryTypes/Categories/Events/Filter/a1fdee6b-68eb-47b8-b2ac-a4c60c8e6177" + "?startRange="+ currentTime.Format(timeFormat) + "&endRange=" + tomorrow.Format(timeFormat)
+	url := "https://scientia-eu-v4-api-d1-03.azurewebsites.net/api/Public/CategoryTypes/Categories/Events/Filter/a1fdee6b-68eb-47b8-b2ac-a4c60c8e6177" + "?startRange="+ parsedTime.Format(timeFormat) + "&endRange=" + parsedTime.AddDate(0, 0, 1).Format(timeFormat)
 
 	requestBody := map[string]interface{}{
 		"ViewOptions": map[string]interface{}{
@@ -100,12 +128,12 @@ func GetRoom(targetRoom string) (Room, error){
 	requestBodyBytes, err := json.Marshal(requestBody)
 	if err != nil {
 		println("[getRoom] Error creating request body: ", err)
-		return Room{}, err
+		return Returnable{}, err
 	}
 	req, err2 := http.NewRequest("POST", url, bytes.NewBuffer(requestBodyBytes))
 	if err2 != nil {
 		println("[getRoom] Error creating request: ", err)
-		return Room{}, err
+		return Returnable{}, err
 	}
 	req.Header.Set("accept", "application/json, text/plain, */*")
 	req.Header.Set("accept-language", "en-US,en;q=0.9")
@@ -119,7 +147,7 @@ func GetRoom(targetRoom string) (Room, error){
 
 	if err != nil {
 		fmt.Println("[getRoom] Error sending request: ", err)
-		return Room{}, err
+		return Returnable{}, err
 	}
 
 	defer resp.Body.Close()
@@ -131,20 +159,29 @@ func GetRoom(targetRoom string) (Room, error){
 	err = json.NewDecoder(resp.Body).Decode(&data)
 	if err != nil {
 		fmt.Println("Error decoding JSON:", err)
-		return Room{}, err
+		return Returnable{}, err
 	}
+
+	fmt.Println(data)
 
 	categoryEvents, ok := data["CategoryEvents"].([]interface{})
 	if !ok || len(categoryEvents) == 0 {
 		fmt.Println("[getRoom] No CategoryEvents found in the response.")
-		return Room{}, nil
+		return Returnable{}, nil
 	}
 
 	results, ok := categoryEvents[0].(map[string]interface{})["Results"].([]interface{})
 	if !ok || len(categoryEvents) == 0 {
 		fmt.Println("[getRoom] No Results found in the response.")
-		return Room{}, nil
+		return Returnable{}, nil
 	}
+
+	returnableRoom := Returnable{
+		RoomID: targetRoom,
+		Available: true,
+	}
+
+	nextComplete := false
 
 	for _, event := range results {
 		event, ok := event.(map[string]interface{})
@@ -162,6 +199,24 @@ func GetRoom(targetRoom string) (Room, error){
 			endDateTimeStr = "N/A"
 		}
 
+		eventName, ok := event["Name"].(string)
+		if !ok {
+			eventName = "N/A"
+		}
+
+		module, ok := event["ExtraProperties"].([]interface{})
+		var moduleName string
+		if ok {
+			moduleName, err = extractModuleName(module)
+			if err != nil {
+				moduleName = eventName
+			}
+
+		} else {
+			moduleName = eventName
+		}
+
+
 
 		timeFormat := "2006-01-02T15:04:05-07:00"
 		startTime, stErr := time.Parse(timeFormat, startTimeStr)
@@ -171,15 +226,76 @@ func GetRoom(targetRoom string) (Room, error){
 			continue
 		}
 
-		if startTime.After(time.Now()) && endTime.Before(time.Now()) {
-			roomToReturn = Room{
-				Name: targetRoom,
-				Available: false,
-			}
+		fmt.Println("-")
+		fmt.Println(parsedTime)
+		fmt.Println(startTime)
+		fmt.Println(endTime)
+		fmt.Println("-")
+
+		if startTime.Equal(parsedTime) || (parsedTime.After(startTime) && parsedTime.Before(endTime)) {
+			returnableRoom.Available = false
+			returnableRoom.Until = endTime
+			returnableRoom.OccupiedBy.Description = moduleName
+			returnableRoom.OccupiedBy.Began = startTime
+			returnableRoom.OccupiedBy.Ends = endTime
+			returnableRoom.OccupiedBy.Module = eventName
+			nextComplete = false
+		} else if !nextComplete {
+			returnableRoom.NextEvent.Began = startTime
+			returnableRoom.NextEvent.Ends = endTime
+			returnableRoom.NextEvent.Description = moduleName
+			returnableRoom.NextEvent.Module = eventName
+			nextComplete = true
 		}
 
-		return Room{}, nil
 	}
 
-	return Room{}, nil
+	// TODO: fix error above here in line 242 
+	if !nextComplete {
+		returnableRoom.NextEvent = Event{}
+	}
+
+	return returnableRoom, nil
+}
+
+func GetAllRooms() ([]string, error) {
+	jsonFile, err := os.Open("lists/rooms.json")
+	if err != nil {
+		return nil, err
+	}
+
+	defer jsonFile.Close()
+
+	var rooms []StoredRoom
+	decoder := json.NewDecoder(jsonFile)
+	err = decoder.Decode(&rooms)
+	if err != nil {
+		return nil, err
+	}
+	var ids []string
+	for _, room := range rooms {
+		ids = append(ids, room.ID + " - " + room.FriendlyName)
+	}
+	return ids, nil
+}
+
+func GetBuildings() ([]string, error) {
+	jsonFile, err := os.Open("lists/buildings.json")
+	if err != nil {
+		return nil, err
+	}
+
+	defer jsonFile.Close()
+
+	var buildings []string
+	decoder := json.NewDecoder(jsonFile)
+	err = decoder.Decode(&buildings)
+	if err != nil {
+		return nil, err
+	}
+	var ids []string
+	for _, b := range buildings {
+		ids = append(ids, b)
+	}
+	return ids, nil
 }

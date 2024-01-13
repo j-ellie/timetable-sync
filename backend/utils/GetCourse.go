@@ -14,7 +14,7 @@ type Course struct {
 }
 
 func GetAllCodes() ([]string, error) {
-	jsonFile, err := os.Open("courses.json")
+	jsonFile, err := os.Open("lists/courses.json")
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +35,7 @@ func GetAllCodes() ([]string, error) {
 }
 
 func GetCourseId(courseStr string) (string, string, error) {
-	jsonFile, err := os.Open("courses.json")
+	jsonFile, err := os.Open("lists/courses.json")
 	if err != nil {
 		return "", "", err
 	}

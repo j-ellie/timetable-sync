@@ -275,6 +275,48 @@ func main() {
 		return c.JSON(http.StatusOK, response)
 	})
 
+	e.GET("/rooms", func(c echo.Context) error {
+		ids, err := utils.GetAllRooms()
+
+		var response struct {
+			Success     bool   `json:"success"`
+			Message     string `json:"message"omitempty`
+			Ids     	[]string `json:"ids"omitempty`
+		}
+
+		if err != nil {
+			response.Success = true
+			response.Message = "Failed to get rooms. Error: " + err.Error()
+			return c.JSON(http.StatusInternalServerError, response)
+		}		
+
+		response.Ids = ids
+		response.Success = true
+
+		return c.JSON(http.StatusOK, response)
+	})
+
+	e.GET("/buildings", func(c echo.Context) error {
+		ids, err := utils.GetBuildings()
+
+		var response struct {
+			Success     bool   `json:"success"`
+			Message     string `json:"message"omitempty`
+			Ids     	[]string `json:"ids"omitempty`
+		}
+
+		if err != nil {
+			response.Success = true
+			response.Message = "Failed to get buildings. Error: " + err.Error()
+			return c.JSON(http.StatusInternalServerError, response)
+		}		
+
+		response.Ids = ids
+		response.Success = true
+
+		return c.JSON(http.StatusOK, response)
+	})
+
 	e.DELETE("/delete", func(c echo.Context) error {
 		auth := c.Request().Header.Get("Authorization")
 
@@ -331,17 +373,23 @@ func main() {
 		var response struct {
 			Success     bool   `json:"success"`
 			Message     string `json:"message"omitempty`
+			Data utils.Returnable `json:"data"`
 		}
 
 		roomNumber := c.Request().URL.Query().Get("room")
-		if roomNumber == "" {
+		targetTime := c.Request().URL.Query().Get("time")
+		if roomNumber == "" || targetTime == "" {
 			response.Success = false
 			response.Message = "No room number given."
 			return c.JSON(http.StatusBadRequest, response)
 		}
-		roomInfo, err := utils.GetRoom(roomNumber)
+		roomInfo, err := utils.GetRoom(roomNumber, targetTime)
 
 		fmt.Println(roomInfo, err)
+
+		
+		response.Success = true
+		response.Data = roomInfo
 
 		return c.JSON(http.StatusOK, response)
 	})
