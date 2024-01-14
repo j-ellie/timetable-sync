@@ -4,7 +4,7 @@ import { ArrowLeftIcon, SearchIcon } from "@chakra-ui/icons"
 import { FaCheckCircle } from "react-icons/fa";
 import { FaCircleXmark } from "react-icons/fa6";
 
-import ago from "s-ago"
+import convertToFriendly from '../utils/timeFormat';
 
 export default function RoomSearch() {
   // const apiEndpoint = "https://api-ts.jamesz.dev";
@@ -51,7 +51,7 @@ export default function RoomSearch() {
     setTime(e.target.value)
   }	
 
-  const search = () => {
+  const searchSpecific = () => {
     if (!selected) {
       toast({
         title: 'Please select a room from the dropdown!',
@@ -104,8 +104,60 @@ export default function RoomSearch() {
     })
   }
 
+  const searchBuilding = () => {
+    if (!selected) {
+      toast({
+        title: 'Please select a building from the dropdown!',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      })
+      return
+    }
+    setInputState(1)
+
+    let targetTime;
+
+    if (isToday === "true") {
+      const now = new Date()
+      targetTime = now.toDateString() + " @ " + now.toTimeString().split(" ")[0];
+    } else {
+      targetTime = selectedTime
+    }
+
+    fetch(apiEndpoint + `/building?building=${selected.split(" - ")[0]}&time=${targetTime}`)
+    .then(response => response.json())
+    .then(data => {
+      if (!data.success) {
+        toast({
+          title: 'Failed to preform request..',
+          description: "Couldn't get data from api. Error: " + err.toString(),
+          status: 'error',
+          duration: 5000,
+          isClosable: true,
+        })
+        return;
+      } else {
+        console.log("RESPONSE ")
+        console.log(data)
+        setResults(data.data)
+        setInputState(2)
+      }
+    })
+    .catch(err => {
+      toast({
+        title: 'Failed to preform request..',
+        description: "Couldn't get data from api. Error: " + err.toString(),
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      })
+    })
+  }
+
   const reset = () => {
     setInputState(0)
+    setResults(null)
   }
 
   const dates = generateDates()
@@ -174,6 +226,16 @@ export default function RoomSearch() {
     })
   }, [])
 
+  let targetTime;
+
+  if (isToday === "true") {
+    const now = new Date()
+    targetTime = now.toDateString() + " @ " + now.toTimeString().split(" ")[0];
+  } else {
+    targetTime = selectedTime
+  }
+
+
   return (
     <Box bgColor="gray.200" borderRadius="2em" width="30em" height="em" p={3} pb={5} maxHeight="95vh">
       <Heading textAlign="center" fontSize="3xl">DCU Room Availability Checker</Heading>
@@ -203,7 +265,7 @@ export default function RoomSearch() {
                       <option value={date} key={date}>{date}</option>
                     ))}
                 </Select>
-                <Button colorScheme='green' w="100%" mt={4} onClick={search}><SearchIcon mr={2} /> Search</Button>
+                <Button colorScheme='green' w="100%" mt={4} onClick={searchSpecific}><SearchIcon mr={2} /> Search</Button>
               </Box>
               <Stack direction="column" hidden={inputState !== 1}>
                 <Center>
@@ -211,8 +273,10 @@ export default function RoomSearch() {
                 </Center>
                 <Text textAlign="center">Searching... Please wait a moment :)</Text>
               </Stack>
-              {/* TODO: Add friendly times here (e.g in 2 hours) */}
+              {/* TODO: Add until text (free until, occupied until) */}
               <Box hidden={inputState !== 2}>
+                <Text textAlign="center"><b>{selected}</b></Text>
+                <Text mb={2} textAlign="center" color="gray.600"><b>{targetTime}</b></Text>
                 {
                   searchResults?.available ? (
                     <>
@@ -220,16 +284,16 @@ export default function RoomSearch() {
                         <Icon as={FaCheckCircle} fontSize="9xl" color="green.400" />
                     </Center>
                     <Heading fontSize="xl" textAlign="center" mt={2} mb={1}>Room is Available</Heading>
-                    {searchResults?.nextEvent.description === "" ?
+                    {searchResults?.nextEvent?.description === "" ?
                       <Text>No events booked for the remainder of today.</Text>
                       : (
                         <>
-                        <Text><b>Free Until:</b> {searchResults?.until}</Text>
+                        {/* <Text><b>Free Until:</b> {searchResults?.until}</Text> */}
                         <Heading fontSize="lg" textAlign="center" mt={2} mb={1}>Next Event</Heading>
-                        <Text><b>Begins:</b> {searchResults?.nextEvent.began}</Text>
-                        <Text><b>Description:</b> {searchResults?.nextEvent.description}</Text>
-                        <Text><b>Module:</b> {searchResults?.nextEvent.module}</Text>
-                        <Text><b>Ends:</b> {searchResults?.nextEvent.ends}</Text>
+                        <Text><b>Begins:</b> {convertToFriendly(searchResults?.nextEvent?.began)}</Text>
+                        <Text><b>Description:</b> {searchResults?.nextEvent?.description}</Text>
+                        <Text><b>Module:</b> {searchResults?.nextEvent?.module}</Text>
+                        <Text><b>Ends:</b> {convertToFriendly(searchResults?.nextEvent?.ends)}</Text>
                         </>
                       )
                     }
@@ -241,23 +305,23 @@ export default function RoomSearch() {
                         <Icon as={FaCircleXmark} fontSize="9xl" color="red.500" />
                     </Center>
                     <Heading fontSize="xl" textAlign="center" mt={2} mb={1}>Room is Occupied</Heading>
-                    <Text><b>Until:</b> {searchResults?.until}</Text>
+                    {/* <Text><b>Until:</b> {searchResults?.until}</Text> */}
                     
                     <Heading fontSize="lg" textAlign="center" mt={2} mb={1}>Current Event</Heading>
-                    <Text><b>Began:</b> {new Date(searchResults?.occupiedBy.began).toLocaleString()} ({ago(new Date(searchResults?.occupiedBy.began))})</Text>
-                    <Text><b>Description:</b> {searchResults?.occupiedBy.description}</Text>
-                    <Text><b>Module:</b> {searchResults?.occupiedBy.module}</Text>
-                    <Text><b>Ends:</b> {searchResults?.occupiedBy.ends}</Text>
+                    <Text><b>Began:</b> {convertToFriendly(searchResults?.occupiedBy?.began)}</Text>
+                    <Text><b>Description:</b> {searchResults?.occupiedBy?.description}</Text>
+                    <Text><b>Module:</b> {searchResults?.occupiedBy?.module}</Text>
+                    <Text><b>Ends:</b> {convertToFriendly(searchResults?.occupiedBy?.ends)}</Text>
 
                     <Heading fontSize="lg" textAlign="center" mt={2} mb={1}>Next Event</Heading>
-                    {searchResults?.nextEvent.description === "" ?
+                    {searchResults?.nextEvent?.description === "" ?
                       <Text>No events booked for the remainder of today.</Text>
                       : (
                         <>
-                        <Text><b>Begins:</b> {searchResults?.nextEvent.began}</Text>
-                        <Text><b>Description:</b> {searchResults?.nextEvent.description}</Text>
-                        <Text><b>Module:</b> {searchResults?.nextEvent.module}</Text>
-                        <Text><b>Ends:</b> {searchResults?.nextEvent.ends}</Text>
+                        <Text><b>Begins:</b> {convertToFriendly(searchResults?.nextEvent?.began)}</Text>
+                        <Text><b>Description:</b> {searchResults?.nextEvent?.description}</Text>
+                        <Text><b>Module:</b> {searchResults?.nextEvent?.module}</Text>
+                        <Text><b>Ends:</b> {convertToFriendly(searchResults?.nextEvent?.ends)}</Text>
                         </>
                       )
                     }
@@ -286,7 +350,7 @@ export default function RoomSearch() {
                     <option value={date} key={date}>{date}</option>
                   ))}
               </Select>
-              <Button colorScheme='green' w="100%" mt={4} onClick={search}><SearchIcon mr={2} /> Search</Button>
+              <Button colorScheme='green' w="100%" mt={4} onClick={searchBuilding}><SearchIcon mr={2} /> Search</Button>
             </Box>
             <Stack direction="column" hidden={inputState !== 1}>
               <Center>
@@ -295,19 +359,48 @@ export default function RoomSearch() {
               <Text textAlign="center">Searching... Please wait a moment :)</Text>
             </Stack>
             
-            {/* <Box hidden={inputState !== 2}>
-              <Heading fontSize="md" textAlign="center" mb={1}>Search Results</Heading>
-              <Center>
-                  <Icon as={FcApproval} />
-              </Center>
-              <UnorderedList >
-                <ListItem>Room #1 - FREE until x</ListItem>
-                <ListItem>Room #2 - FREE until x</ListItem>
-                <ListItem>Room #3 - FREE until x</ListItem>
-                <ListItem>Room #4 - FREE until x</ListItem>
-                <Button colorScheme='purple' size="sm" w="100%" mt={4} onClick={reset}><SearchIcon mr={2} /> Search Again</Button>
-              </UnorderedList>
-            </Box> */}
+            <Box hidden={inputState !== 2}>
+                <Text textAlign="center"><b>{selected}</b></Text>
+                <Text mb={2} textAlign="center" color="gray.600"><b>{targetTime}</b></Text>
+                <Center>
+                    <Box
+                      bgColor="blue.500"
+                      h="100px"
+                      w="100px"
+                      borderRadius="50%"
+                      textAlign="center"
+                      color="white"
+                      fontWeight="bold"
+                      fontSize="6xl"
+                      pb={2}
+                    >
+                      <Center h="100%">
+                        <Text>{searchResults?.length}</Text>
+                      </Center>
+                    </Box>
+                </Center>
+                <Text textAlign="center" fontWeight="bold" color="gray.600" mt={1}>Rooms Available</Text>
+                {/* TODO maybe put this info into a striped table */}
+                {
+                  Array.isArray(searchResults) &&
+                  searchResults?.map(res => {
+                    let nextEv;
+                    if (new Date(res.nextEvent?.began).getFullYear() === 0) {
+                      nextEv = "No events for the remainder of today."
+                    } else {
+                      nextEv = "Next Event @ " + convertToFriendly(res.nextEvent?.began)
+                    }
+
+                    return (
+                      <Text key={res.id}>{res.id} - {nextEv}</Text>
+                    )
+
+                  }
+                  )
+                }
+
+              <Button colorScheme='purple' size="sm" w="100%" mt={4} onClick={reset}><SearchIcon mr={2} /> Search Again</Button>
+            </Box>
           </TabPanel>
         </TabPanels>
       </Tabs>

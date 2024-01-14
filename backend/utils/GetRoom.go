@@ -1,12 +1,13 @@
 package utils
 
 import (
-	"os"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
+	"strings"
 	"time"
-	"bytes"
 )
 
 type Room struct {
@@ -250,12 +251,43 @@ func GetRoom(targetRoom string, targetTime string) (Returnable, error){
 
 	}
 
-	// TODO: fix error above here in line 242 
+	// TODO: fix error above here in line 242 	
 	if !nextComplete {
 		returnableRoom.NextEvent = Event{}
 	}
 
 	return returnableRoom, nil
+}
+
+func GetFreeRoomsInBuilding(buildingName string, targetTime string) ([]Returnable, error) {
+	jsonFile, err := os.Open("lists/rooms.json")
+	if err != nil {
+		return nil, err
+	}
+
+	defer jsonFile.Close()
+
+	var rooms []StoredRoom
+	decoder := json.NewDecoder(jsonFile)
+	err = decoder.Decode(&rooms)
+	if err != nil {
+		return nil, err
+	}
+	var returnables []Returnable
+	for _, room := range rooms {
+		if strings.HasPrefix(room.ID, buildingName) {
+			fmt.Println(room.ID)
+			curr, err := GetRoom(room.ID, targetTime)
+
+			if err == nil && curr.Available {
+				returnables = append(returnables, curr)
+			}
+		}
+		// ids = append(ids, room.ID + " - " + room.FriendlyName)
+	}
+	fmt.Println(returnables)
+	fmt.Println(len(returnables))
+	return returnables, nil
 }
 
 func GetAllRooms() ([]string, error) {

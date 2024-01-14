@@ -394,6 +394,31 @@ func main() {
 		return c.JSON(http.StatusOK, response)
 	})
 
+	e.GET("/building", func (c echo.Context) error {
+		var response struct {
+			Success     bool   `json:"success"`
+			Message     string `json:"message"omitempty`
+			Data []utils.Returnable `json:"data"`
+		}
+
+		building := c.Request().URL.Query().Get("building")
+		targetTime := c.Request().URL.Query().Get("time")
+		if building == "" || targetTime == "" {
+			response.Success = false
+			response.Message = "No building given."
+			return c.JSON(http.StatusBadRequest, response)
+		}
+		rooms, err := utils.GetFreeRoomsInBuilding(building, targetTime)
+
+		fmt.Println(rooms, err)
+
+		
+		response.Success = true
+		response.Data = rooms
+
+		return c.JSON(http.StatusOK, response)
+	})
+
 
 	scheduler := gocron.NewScheduler(time.Local)
 	scheduler.Every(1).Day().WaitForSchedule().At("8:30").Do(utils.RunUpdate)
