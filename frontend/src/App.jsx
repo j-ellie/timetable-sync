@@ -8,6 +8,7 @@ import Error from './views/Error';
 import Privacy from './views/Privacy';
 import RoomSearch from './views/RoomSearch';
 import { FcGoogle } from "react-icons/fc";
+import Footer from './components/Footer';
 
 function App() {
   const [signedIn, setSignIn] = useState(false);
@@ -60,31 +61,43 @@ function App() {
           <Privacy />   
         ) : null 
       }
-      <Center height="97vh">
       {
         isError != null ? (
-          <Error error={isError} />
+          <Center height={["auto", "100vh"]}>
+            <Error error={isError} />
+            <Footer />
+          </Center>
         ) : null
       }
       {
         showRooms ? (
-          <RoomSearch />   
+          <Center height={["auto", "100vh"]}>
+            <RoomSearch />   
+            <Footer />
+          </Center>
         ) : null 
       }
       {
         signedIn && !isLoading && isError == null && !showPrivacy && !showRooms ? (
-          <SignedIn setSignIn={setSignIn} data={data} />   
+          <Center height={["auto", "100vh"]}>
+            <SignedIn setSignIn={setSignIn} data={data} /> 
+            <Footer />
+          </Center>
         ) : null 
       }
       {
         isLoading && !signedIn && isError == null && !showPrivacy && !showRooms ? (
-          <LoggingIn />   
+          <Center height={["auto", "100vh"]}>
+            <LoggingIn />
+            <Footer />
+          </Center>
         ) : null
       }
 
       {
         !isLoading && !signedIn && isError == null && !showPrivacy && !showRooms ? (
           <>
+            <Center height="100vh">
             <VStack m={2}>
               <Heading>Timetable Sync</Heading>
               <Text mt={2}>The easy way to sync your DCU timetable on Google Calendar.</Text>
@@ -96,16 +109,13 @@ function App() {
               <Button colorScheme="orange" onClick={() => { window.location.href = "/room-checker" }} isDisabled={false}>
                 Room Checker
               </Button>
+              <Footer />
             </VStack>
+            </Center>
           </>
         ) : null
       }
-      
-      </Center>
-      <footer>
-        <Text textAlign="center" fontSize="sm">Timetable Sync is not affiliated with DCU. Made by <a href="https://jamesz.dev" target='_blank' style={{ textDecoration: "underline", fontWeight: "bold"}}>James</a> </Text>
-        <Text textAlign="center" fontSize="sm">By using this app, you agree to our: <a href="/privacy" style={{ textDecoration: "underline", fontWeight: "bold"}}>Privacy Policy</a></Text>
-        </footer>
+
     </>
   )
 }

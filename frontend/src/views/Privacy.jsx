@@ -4,7 +4,7 @@ import React from 'react'
 export default function Privacy() {
 
   return (
-    <Center h="100vh" pt="20em">
+    <Center h="auto" pb={2}>
     <Box ml={5} mr={5} width="600px" height="fit-content">
         <Heading mt={5} textAlign="center">Privacy Policy for Timetable Sync</Heading>
         <Divider mt={3} mb={5} borderWidth={1} />

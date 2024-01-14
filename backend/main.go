@@ -44,7 +44,7 @@ func main() {
 	})
 
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{"http://127.0.0.1:5173", "http://localhost:5173", "https://ts.jamesz.dev"},
+		AllowOrigins: []string{"http://127.0.0.1:5173", "http://localhost:5173", "https://ts.jamesz.dev", "https://ts.elliee.me"},
 		AllowMethods: []string{http.MethodGet, http.MethodPost, http.MethodDelete},
 		AllowHeaders: []string{"*", "Authorization"},
 	}))

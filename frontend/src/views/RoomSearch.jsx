@@ -7,8 +7,8 @@ import { FaCircleXmark } from "react-icons/fa6";
 import convertToFriendly from '../utils/timeFormat';
 
 export default function RoomSearch() {
-  // const apiEndpoint = "https://api-ts.jamesz.dev";
-  const apiEndpoint = "http://localhost:1323";
+  const apiEndpoint = "https://api-ts.jamesz.dev";
+  // const apiEndpoint = "http://localhost:1323";
   const toast = useToast()
 
   // 0 = inputs for search
@@ -237,7 +237,7 @@ export default function RoomSearch() {
 
 
   return (
-    <Box bgColor="gray.200" borderRadius="2em" width="30em" height="em" p={3} pb={5} maxHeight="95vh">
+    <Box bgColor="gray.200" borderRadius="2em" width="30em" overflow="auto" p={3} pb={5}>
       <Heading textAlign="center" fontSize="3xl">DCU Room Availability Checker</Heading>
 
       <Tabs onChange={() => { setInputState(0) }}>
