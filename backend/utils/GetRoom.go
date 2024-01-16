@@ -252,7 +252,7 @@ func GetRoom(targetRoom string, targetTime string) (Returnable, error){
 	}
 
 	// TODO: fix error above here in line 242 	
-	if !nextComplete {
+	if !nextComplete || returnableRoom.NextEvent.Ends.Before(parsedTime) {
 		returnableRoom.NextEvent = Event{}
 	}
 

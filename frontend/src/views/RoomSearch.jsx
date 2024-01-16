@@ -1,4 +1,30 @@
-import { Box, Spinner, Heading, Tabs, Tab, TabList, TabPanels, TabPanel, Radio, RadioGroup, Select, Text, ListItem, Icon, Tooltip, Button, Link, Input, Avatar, Center, useToast, InputGroup, InputRightElement, HStack, Stack, UnorderedList } from '@chakra-ui/react'
+import { 
+  Box, 
+  Spinner, 
+  Heading, 
+  Tabs, 
+  Tab, 
+  TabList, 
+  TabPanels, 
+  TabPanel, 
+  Radio, 
+  RadioGroup, 
+  Select, 
+  Text, 
+  Icon, 
+  Button, 
+  Center, 
+  useToast, 
+  Stack,
+  Table,
+  Thead,
+  Tbody,
+  Tfoot,
+  Tr,
+  Th,
+  Td,
+  TableCaption,
+  TableContainer, } from '@chakra-ui/react'
 import React, { useState, useEffect, useRef } from 'react'
 import { ArrowLeftIcon, SearchIcon } from "@chakra-ui/icons"
 import { FaCheckCircle } from "react-icons/fa";
@@ -7,8 +33,8 @@ import { FaCircleXmark } from "react-icons/fa6";
 import convertToFriendly from '../utils/timeFormat';
 
 export default function RoomSearch() {
-  const apiEndpoint = "https://api-ts.jamesz.dev";
-  // const apiEndpoint = "http://localhost:1323";
+  // const apiEndpoint = "https://api-ts.jamesz.dev";
+  const apiEndpoint = "http://localhost:1323";
   const toast = useToast()
 
   // 0 = inputs for search
@@ -16,6 +42,10 @@ export default function RoomSearch() {
   // 2 = showing search results
   const [inputState, setInputState] = useState(0)
   const [searchResults, setResults] = useState(null)
+
+  const roomRef = useRef(null)
+  const buildingRef = useRef(null)
+
 
   const [isToday, setToday] = useState("true");
 
@@ -235,12 +265,22 @@ export default function RoomSearch() {
     targetTime = selectedTime
   }
 
+  function refreshSelectedState(event) {
+    // TODO: Fix old selection when tab changes
+    if (event === 0) {
+      setSelected(roomRef.current.value)
+    } else {
+      setSelected(buildingRef.current.value)
+    }
+    setInputState(0)
+  }
+
 
   return (
     <Box bgColor="gray.200" borderRadius="2em" width="30em" overflow="auto" p={3} pb={5}>
       <Heading textAlign="center" fontSize="3xl">DCU Room Availability Checker</Heading>
 
-      <Tabs onChange={() => { setInputState(0) }}>
+      <Tabs onChange={refreshSelectedState}>
         <TabList>
           <Tab>Check Specific Room</Tab>
           <Tab>Search a Building</Tab>
@@ -249,7 +289,7 @@ export default function RoomSearch() {
         <TabPanels>
           <TabPanel>
             <Box hidden={inputState !== 0}>
-                <Select variant="filled" placeholder='Select Room' cursor="pointer" onChange={makeSelection}>
+                <Select variant="filled" placeholder='Select Room' cursor="pointer" onChange={makeSelection} ref={roomRef}>
                   {availableRooms.map(r => (
                     <option value={r} key={r}>{r}</option>
                   ))}
@@ -333,7 +373,7 @@ export default function RoomSearch() {
           </TabPanel>
           <TabPanel>
             <Box hidden={inputState !== 0}>
-              <Select variant="filled" placeholder='Select Building' cursor="pointer" onChange={makeSelection}>
+              <Select variant="filled" placeholder='Select Building' cursor="pointer" onChange={makeSelection} ref={buildingRef}>
                 {buildings.map(building => (
                   <option value={building} key={building}>{building}</option>
                 ))}
@@ -381,7 +421,42 @@ export default function RoomSearch() {
                 </Center>
                 <Text textAlign="center" fontWeight="bold" color="gray.600" mt={1}>Rooms Available</Text>
                 {/* TODO maybe put this info into a striped table */}
-                {
+                <TableContainer mt={2}>
+                <Table variant='striped' colorScheme='teal' size="sm">
+                  <TableCaption>Showing available Rooms</TableCaption>
+                  <Thead>
+                    <Tr>
+                      <Th>Room No.</Th>
+                      <Th>Next Event</Th>
+                    </Tr>
+                  </Thead>
+                  <Tbody>
+                    {
+                      Array.isArray(searchResults) &&
+                      searchResults?.map(res => {
+                        let nextEv;
+                        if (new Date(res.nextEvent?.began).getFullYear() === 0) {
+                          nextEv = "No events for the remainder of today."
+                        } else {
+                          nextEv = convertToFriendly(res.nextEvent?.began)
+                        }
+
+                        return (
+                          <Tr key={res.id}>
+                            <Td>{res.id}</Td>
+                            <Td>{nextEv}</Td>
+                          </Tr>
+                          // <Text key={res.id}>{res.id} - {nextEv}</Text>
+                        )
+
+                      }
+                      )
+                    }
+
+                  </Tbody>
+                </Table>
+              </TableContainer>
+                {/* {
                   Array.isArray(searchResults) &&
                   searchResults?.map(res => {
                     let nextEv;
@@ -397,7 +472,7 @@ export default function RoomSearch() {
 
                   }
                   )
-                }
+                } */}
 
               <Button colorScheme='purple' size="sm" w="100%" mt={4} onClick={reset}><SearchIcon mr={2} /> Search Again</Button>
             </Box>

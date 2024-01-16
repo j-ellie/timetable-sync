@@ -71,7 +71,8 @@ function App() {
       }
       {
         showRooms ? (
-          <Center height={["auto", "100vh"]}>
+          // <Center height={["auto", "100vh"]}>
+          <Center height="auto">
             <RoomSearch />   
             <Footer />
           </Center>
