@@ -33,8 +33,8 @@ import { FaCircleXmark } from "react-icons/fa6";
 import convertToFriendly from '../utils/timeFormat';
 
 export default function RoomSearch() {
-  // const apiEndpoint = "https://api-ts.jamesz.dev";
-  const apiEndpoint = "http://localhost:1323";
+  const apiEndpoint = "https://api-ts.jamesz.dev";
+  // const apiEndpoint = "http://localhost:1323";
   const toast = useToast()
 
   // 0 = inputs for search
