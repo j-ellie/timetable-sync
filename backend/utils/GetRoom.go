@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 	"time"
+	"sort"
 )
 
 type Room struct {
@@ -20,6 +21,13 @@ type Event struct {
 	Began time.Time `json:"began"`
 	Ends time.Time `json:"ends"`
 	Description string `json:"description"`
+	Module string `json:"module"`
+}
+
+type RawEvent struct {
+	Began time.Time `json:"began"`
+	Ends time.Time `json:"ends"`
+	EventName string `json:"event_name"`
 	Module string `json:"module"`
 }
 
@@ -184,6 +192,8 @@ func GetRoom(targetRoom string, targetTime string) (Returnable, error){
 
 	nextComplete := false
 
+	var rawResults []RawEvent
+
 	for _, event := range results {
 		event, ok := event.(map[string]interface{})
 		if !ok {
@@ -217,8 +227,6 @@ func GetRoom(targetRoom string, targetTime string) (Returnable, error){
 			moduleName = eventName
 		}
 
-
-
 		timeFormat := "2006-01-02T15:04:05-07:00"
 		startTime, stErr := time.Parse(timeFormat, startTimeStr)
 		endTime, etErr := time.Parse(timeFormat, endDateTimeStr)
@@ -227,7 +235,29 @@ func GetRoom(targetRoom string, targetTime string) (Returnable, error){
 			continue
 		}
 
-		fmt.Println("-")
+		newEvent := RawEvent{
+			Began: startTime,
+			Ends: endTime,
+			EventName: eventName,
+			Module: moduleName,
+		}
+
+		rawResults = append(rawResults, newEvent)
+	}
+
+	// TODO: Sort raw results by time
+
+	sort.SliceStable(rawResults, func(i, j int) bool {
+		return rawResults[i].Began.Before(rawResults[j].Began)
+	})
+
+	for _, event := range rawResults {
+		startTime := event.Began
+		endTime := event.Ends
+		moduleName := event.Module
+		eventName := event.EventName
+
+		fmt.Println("-", nextComplete)
 		fmt.Println(parsedTime)
 		fmt.Println(startTime)
 		fmt.Println(endTime)
@@ -241,7 +271,7 @@ func GetRoom(targetRoom string, targetTime string) (Returnable, error){
 			returnableRoom.OccupiedBy.Ends = endTime
 			returnableRoom.OccupiedBy.Module = eventName
 			nextComplete = false
-		} else if !nextComplete {
+		} else if (!nextComplete && startTime.After(parsedTime)) {
 			returnableRoom.NextEvent.Began = startTime
 			returnableRoom.NextEvent.Ends = endTime
 			returnableRoom.NextEvent.Description = moduleName
@@ -251,8 +281,10 @@ func GetRoom(targetRoom string, targetTime string) (Returnable, error){
 
 	}
 
+	fmt.Println(returnableRoom.NextEvent)
 	// TODO: fix error above here in line 242 	
 	if !nextComplete || returnableRoom.NextEvent.Ends.Before(parsedTime) {
+		fmt.Println("REMOVING!!!!!!", nextComplete, returnableRoom.NextEvent.Ends.Before(parsedTime))
 		returnableRoom.NextEvent = Event{}
 	}
 
