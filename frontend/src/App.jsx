@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import './App.css'
-import { Center, Text, Image, Button, Heading, VStack, Icon } from '@chakra-ui/react'
+import { Center, Text, Image, Button, Heading, VStack, Icon, OrderedList, UnorderedList, ListItem, Link } from '@chakra-ui/react'
+import { ChevronDownIcon } from '@chakra-ui/icons'
 import { GoogleLogin, useGoogleLogin } from '@react-oauth/google'
 import SignedIn from './views/SignedIn';
 import LoggingIn from './views/LoggingIn';
@@ -112,8 +113,41 @@ function App() {
               <Button colorScheme="orange" onClick={() => { window.location.href = "/room-checker" }} isDisabled={false}>
                 Room Checker
               </Button>
+
+              <Link colorScheme="orange" href='#info'>
+                <ChevronDownIcon fontSize="3xl" mt={2} />
+              </Link>
+
               <Footer />
             </VStack>
+            </Center>
+            <Center m={2} id="info" mb={20}>
+              <VStack w="3xl">
+                <Heading>How it Works</Heading>
+                <OrderedList>
+                  <ListItem>Firstly log into Timetable Sync using your Google Account. Timetable Sync requires access to your Google Calendar to add and remove your timetabled events. This will bring you to the settings page.</ListItem>
+                  <ListItem>Next, select your course from the dropdown, the majority of courses offered in Dublin City University are listed here.</ListItem>
+                  <ListItem>Configure the rest of your settings to your desire including update frequency, email alerts, preferred name and ignored events.</ListItem>
+                  <ListItem>Finally, press the save button and your preferences will be saved as well as your timetable will be synced for the first time.</ListItem>
+                  <ListItem>Give it a couple of moments then check out your Google Calendar, it should be populated!</ListItem>
+                </OrderedList>
+                <UnorderedList>
+                  <ListItem>At any time you can sync your timetable using the "Sync Now" button.</ListItem>
+                  <ListItem>If you wish to stop using Timetable Sync, press the "Stop Syncing" button and all of your data will be deleted from the service immediately.</ListItem>
+                  <ListItem>Have any questions? Email us at: <Link href="mailto:james@jamesz.dev">james@jamesz.dev</Link></ListItem>
+                </UnorderedList>
+
+                <Heading mt={2}>Features</Heading>
+                <UnorderedList>
+                  <ListItem>Fully automatic syncing, runs each morning so room changes, etc are updated.</ListItem>
+                  <ListItem>Daily email notifications including your timetable for that day.</ListItem>
+                  <ListItem>Error notifications if your timetable cannot be synced.</ListItem>
+                  <ListItem>Colour-coded modules.</ListItem>
+                  <ListItem>Add the names of events you don't want included on your timetable, e.g tutorial groups that aren't yours.</ListItem>
+                  <ListItem>Built in, easy to use room checker, to find available rooms on campus.</ListItem>
+                </UnorderedList>
+
+              </VStack>
             </Center>
           </>
         ) : null
