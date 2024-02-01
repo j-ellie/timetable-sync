@@ -9,6 +9,7 @@ import Privacy from './views/Privacy';
 import RoomSearch from './views/RoomSearch';
 import { FcGoogle } from "react-icons/fc";
 import Footer from './components/Footer';
+import GoogleSignin from './components/GoogleSignin';
 
 function App() {
   const [signedIn, setSignIn] = useState(false);
@@ -37,7 +38,7 @@ function App() {
     flow: "auth-code",
     client_id: "603064467469-2u4rh86o1c9t3np5avphpalgv4ia71ql.apps.googleusercontent.com",
     access_type: "offline",
-    redirect_uri: "https://tab.elliee.me/callback",
+    // redirect_uri: "https://tab.elliee.me/callback",
     scope: "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar"
   })
 
@@ -104,9 +105,10 @@ function App() {
               <Text mt={2}>The easy way to sync your DCU timetable on Google Calendar.</Text>
               <Text>To get started, just log in with Google using the button below and change the settings to your likings!</Text>
               <Image mt={3} mb={3} src="/demo.png" h="300px" borderRadius="1em" alt="Example of synced timetable." />
-              <Button colorScheme="blue" onClick={() => { login() }} isDisabled={false}>
+              <GoogleSignin registerClick={login}/>
+              {/* <Button colorScheme="gray" onClick={() => { login() }} isDisabled={false}>
                 <Icon as={FcGoogle} fontSize="3xl" mr={3} bgColor="white" p={1} borderRadius="50px" /> Sign in with Google
-              </Button>
+              </Button> */}
               <Button colorScheme="orange" onClick={() => { window.location.href = "/room-checker" }} isDisabled={false}>
                 Room Checker
               </Button>

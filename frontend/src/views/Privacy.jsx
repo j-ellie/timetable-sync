@@ -32,11 +32,16 @@ export default function Privacy() {
         <Heading fontSize="2xl" as="h3" mt={2}>8. Contact Us</Heading>
         <Text>If you have any questions or concerns about this Privacy Policy, you can email us at: <a href="mailto:me@jamesz.dev" style={{ textDecoration: "underline" }}>me@jamesz.dev</a></Text>
         
-       <Text>Thank you for using Timetable Sync! By using the App, you agree to the terms set out in this Privacy Policy.</Text>
+        <Heading mt={5} textAlign="center" id="disclosure">Disclosure</Heading>
+        <Divider mt={3} mb={5} borderWidth={1} />
+        <Text>Timetable Sync's use and transfer to any other app of information received from the Google APIs will adhere to <a href="https://developers.google.com/terms/api-services-user-data-policy#additional_requirements_for_specific_api_scopes" target='_blank' style={{ textDecoration: "underline" }}>Google API Services User Data Policy</a>, including the Limited Use requirements.</Text>
+
+
+       <Text mt={10}>Thank you for using Timetable Sync! By using the App, you agree to the terms set out in this Privacy Policy.</Text>
 
        <Divider mt={3} mb={5} borderWidth={1} />
 
-       <Text>Last Updated: 11th Dec 2023</Text>
+       <Text>Last Updated: 31st Jan 2024</Text>
        <Text><a href="/" style={{ textDecoration: "underline" }}>Back Home</a></Text>
 
     </Box>
