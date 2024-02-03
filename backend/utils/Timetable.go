@@ -51,8 +51,6 @@ func getTimetable(courseCode string, ignoredEvents []string) []Timetable {
 		return nil
 	}
 
-	fmt.Println(courseId, categoryId)
-
 	currentTime, twoWeeks := getTime()
 	timeFormat := "2006-01-02"
 
@@ -266,14 +264,13 @@ func extractModuleName(extraProperties []interface{}) (string, error) {
 func clearTimetable(calendar *calendar.Service, calendarID string) error {
 	format := time.RFC3339
 	current, twoWeeks := getTime()
-	fmt.Println(current.Format(format), twoWeeks.Format(format))
 	// events, err := calendar.Events.List(calendarID).Do()
 	events, err := calendar.Events.List(calendarID).TimeMin(current.Format(format)).TimeMax(twoWeeks.Format(format)).SingleEvents(true).Do()
 	if err != nil {
 		return fmt.Errorf("Unable to list events: %v", err)
 	}
 
-	fmt.Println("Deleting current events:")
+	// fmt.Println("Deleting current events:")
 	if len(events.Items) > 0 {
 		for _, item := range events.Items {
 			// fmt.Print(item.Summary)
@@ -294,17 +291,17 @@ func clearTimetable(calendar *calendar.Service, calendarID string) error {
 				if err != nil {
 					fmt.Println("Failed to delete event: ", err)
 				}
-				fmt.Println("Deleted event: ", item.Id)
+				// fmt.Println("Deleted event: ", item.Id)
 			}
 		}
 	} else {
-		fmt.Println("No upcoming events found.")
+		fmt.Println("No upcoming events found to delete.")
 	}
 	return nil
 }
 
 func SyncTimetable(config oauth2.Config, accessToken string, refreshToken string, tokenExpiry time.Time, userEmail string, courseCode string, sendEmail bool, ignoredEvents []string) error {
-
+	fmt.Println(userEmail, ">> Starting syncing timetable...")
 	token := oauth2.Token{
 		AccessToken: accessToken,
 		RefreshToken: refreshToken,
@@ -441,10 +438,9 @@ func SyncTimetable(config oauth2.Config, accessToken string, refreshToken string
 
 		emailErr := SendUpdate(user, timetable)
 		if emailErr != nil || dbErr != nil {
-			fmt.Println(emailErr, dbErr)
 			return emailErr
 		}
 	}
-
+	fmt.Println(userEmail, ">> Completed syncing timetable.")
 	return nil
 }

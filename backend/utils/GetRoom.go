@@ -53,6 +53,7 @@ func getTodayTime() (time.Time, time.Time) {
 }
 
 func GetRoom(targetRoom string, targetTime string) (Returnable, error){
+	fmt.Println(targetRoom, ">> Getting room status started...")
 	parseTimeFormat := "Mon Jan 02 2006 @ 15:04:05"
 
 	var identity string
@@ -66,7 +67,6 @@ func GetRoom(targetRoom string, targetTime string) (Returnable, error){
 		return Returnable{}, err
 	}
 
-	fmt.Println(targetRoom, parsedTime)
 
 	jsonFile, err := os.Open("lists/rooms.json")
 	if err != nil {
@@ -93,9 +93,6 @@ func GetRoom(targetRoom string, targetTime string) (Returnable, error){
 		return Returnable{}, fmt.Errorf("Room does not exist.")
 	}
 
-	fmt.Println(identity, categoryIdentity)
-
-	// fmt.Println(currentTime, tomorrow)
 	
 	url := "https://scientia-eu-v4-api-d1-03.azurewebsites.net/api/Public/CategoryTypes/Categories/Events/Filter/a1fdee6b-68eb-47b8-b2ac-a4c60c8e6177" + "?startRange="+ parsedTime.Format(timeFormat) + "&endRange=" + parsedTime.AddDate(0, 0, 1).Format(timeFormat)
 
@@ -161,7 +158,6 @@ func GetRoom(targetRoom string, targetTime string) (Returnable, error){
 
 	defer resp.Body.Close()
 
-	fmt.Println(resp.StatusCode)
 
 	// Decode the response JSON
 	var data map[string]interface{}
@@ -171,7 +167,6 @@ func GetRoom(targetRoom string, targetTime string) (Returnable, error){
 		return Returnable{}, err
 	}
 
-	fmt.Println(data)
 
 	categoryEvents, ok := data["CategoryEvents"].([]interface{})
 	if !ok || len(categoryEvents) == 0 {
@@ -200,7 +195,6 @@ func GetRoom(targetRoom string, targetTime string) (Returnable, error){
 			fmt.Println("Invalid event format")
 			continue
 		}
-		fmt.Println(event)
 		startTimeStr, ok := event["StartDateTime"].(string)
 		if !ok {
 			startTimeStr = "N/A"
@@ -245,7 +239,6 @@ func GetRoom(targetRoom string, targetTime string) (Returnable, error){
 		rawResults = append(rawResults, newEvent)
 	}
 
-	// TODO: Sort raw results by time
 
 	sort.SliceStable(rawResults, func(i, j int) bool {
 		return rawResults[i].Began.Before(rawResults[j].Began)
@@ -256,12 +249,6 @@ func GetRoom(targetRoom string, targetTime string) (Returnable, error){
 		endTime := event.Ends
 		moduleName := event.Module
 		eventName := event.EventName
-
-		fmt.Println("-", nextComplete)
-		fmt.Println(parsedTime)
-		fmt.Println(startTime)
-		fmt.Println(endTime)
-		fmt.Println("-")
 
 		if startTime.Equal(parsedTime) || (parsedTime.After(startTime) && parsedTime.Before(endTime)) {
 			returnableRoom.Available = false
@@ -281,13 +268,10 @@ func GetRoom(targetRoom string, targetTime string) (Returnable, error){
 
 	}
 
-	fmt.Println(returnableRoom.NextEvent)
-	// TODO: fix error above here in line 242 	
 	if !nextComplete || returnableRoom.NextEvent.Ends.Before(parsedTime) {
-		fmt.Println("REMOVING!!!!!!", nextComplete, returnableRoom.NextEvent.Ends.Before(parsedTime))
 		returnableRoom.NextEvent = Event{}
 	}
-
+	fmt.Println(targetRoom, ">> Getting room status complete.")
 	return returnableRoom, nil
 }
 
@@ -308,7 +292,6 @@ func GetFreeRoomsInBuilding(buildingName string, targetTime string) ([]Returnabl
 	var returnables []Returnable
 	for _, room := range rooms {
 		if strings.HasPrefix(room.ID, buildingName) {
-			fmt.Println(room.ID)
 			curr, err := GetRoom(room.ID, targetTime)
 
 			if err == nil && curr.Available {
@@ -317,8 +300,6 @@ func GetFreeRoomsInBuilding(buildingName string, targetTime string) ([]Returnabl
 		}
 		// ids = append(ids, room.ID + " - " + room.FriendlyName)
 	}
-	fmt.Println(returnables)
-	fmt.Println(len(returnables))
 	return returnables, nil
 }
 
