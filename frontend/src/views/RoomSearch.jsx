@@ -30,11 +30,13 @@ import { ArrowLeftIcon, SearchIcon } from "@chakra-ui/icons"
 import { FaCheckCircle } from "react-icons/fa";
 import { FaCircleXmark } from "react-icons/fa6";
 
+import { fetchEventSource } from "@microsoft/fetch-event-source"
+
 import convertToFriendly from '../utils/timeFormat';
 
 export default function RoomSearch() {
-  const apiEndpoint = "https://api-ts.jamesz.dev";
-  // const apiEndpoint = "http://localhost:1323";
+  // const apiEndpoint = "https://api-ts.jamesz.dev";
+  const apiEndpoint = "http://localhost:1323";
   const toast = useToast()
 
   // 0 = inputs for search
@@ -134,7 +136,7 @@ export default function RoomSearch() {
     })
   }
 
-  const searchBuilding = () => {
+  const searchBuilding = async() => {
     if (!selected) {
       toast({
         title: 'Please select a building from the dropdown!',
@@ -155,34 +157,118 @@ export default function RoomSearch() {
       targetTime = selectedTime
     }
 
-    fetch(apiEndpoint + `/building?building=${selected.split(" - ")[0]}&time=${targetTime}`)
-    .then(response => response.json())
-    .then(data => {
-      if (!data.success) {
-        toast({
-          title: 'Failed to preform request..',
-          description: "Couldn't get data from api. Error: " + err.toString(),
-          status: 'error',
-          duration: 5000,
-          isClosable: true,
+    const ctrl = new AbortController();
+
+    try {
+        await fetchEventSource(apiEndpoint + `/building?building=${selected.split(" - ")[0]}&time=${targetTime}`, {
+            method: 'GET',
+            headers: {},
+            signal: ctrl.signal,
+
+            onopen: async (res) => {
+                const contentType = res.headers.get('content-type');
+
+                if (!!contentType && contentType.indexOf('application/json') >= 0) {
+                    throw await res.json();
+                }
+            },
+            onerror: (e) => {
+                if (!!e) {
+                    console.log('Fetch onerror', e);
+                    // do something with this error
+                }
+
+                // ctrl.abort();
+
+                throw e;
+            },
+            onmessage: async (ev) => {
+                const data = ev.data;
+
+                if (!data) {
+                    return;
+                }
+
+                try {
+                    const d = JSON.parse(data);
+
+                    console.log(d.value);
+                } catch (e) {
+                    console.log('Fetch onmessage error', e);
+                }
+            },
         })
-        return;
-      } else {
-        console.log("RESPONSE ")
-        console.log(data)
-        setResults(data.data)
-        setInputState(2)
-      }
-    })
-    .catch(err => {
-      toast({
-        title: 'Failed to preform request..',
-        description: "Couldn't get data from api. Error: " + err.toString(),
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      })
-    })
+    } catch (e) {
+        console.log('Error', e);
+    }
+
+  //   fetch(apiEndpoint + `/building?building=${selected.split(" - ")[0]}&time=${targetTime}`)
+  //   .then(response => {
+  //     // Get the readable stream from the response body
+  //     const stream = response.body;
+  //     // Get the reader from the stream
+  //     const reader = stream.getReader();
+  //     // Define a function to read each chunk
+  //     const readChunk = () => {
+  //         // Read a chunk from the reader
+  //         reader.read()
+  //             .then(({
+  //                 value,
+  //                 done
+  //             }) => {
+  //                 // Check if the stream is done
+  //                 if (done) {
+  //                     // Log a message
+  //                     console.log('Stream finished');
+  //                     // Return from the function
+  //                     return;
+  //                 }
+  //                 // Convert the chunk value to a string
+  //                 const chunkString = new TextDecoder().decode(value);
+  //                 // Log the chunk string
+  //                 console.log(chunkString);
+  //                 // Read the next chunk
+  //                 readChunk();
+  //             })
+  //             .catch(error => {
+  //                 // Log the error
+  //                 console.error(error);
+  //             });
+  //     };
+  //     // Start reading the first chunk
+  //     readChunk();
+  // })
+  // .catch(error => {
+  //     // Log the error
+  //     console.error(error);
+  // });
+  //   .then(response => response.json())
+  //   .then(data => {
+  //     if (!data.success) {
+  //       toast({
+  //         title: 'Failed to preform request..',
+  //         description: "Couldn't get data from api. Error: " + err.toString(),
+  //         status: 'error',
+  //         duration: 5000,
+  //         isClosable: true,
+  //       })
+  //       return;
+  //     } else {
+  //       console.log("RESPONSE ")
+  //       console.log(data)
+  //       setResults(data.data)
+  //       setInputState(2)
+  //     }
+  //   })
+  //   .catch(err => {
+  //     toast({
+  //       title: 'Failed to preform request..',
+  //       description: "Couldn't get data from api. Error: " + err.toString(),
+  //       status: 'error',
+  //       duration: 5000,
+  //       isClosable: true,
+  //     })
+  //   })
   }
 
   const reset = () => {
@@ -266,7 +352,6 @@ export default function RoomSearch() {
   }
 
   function refreshSelectedState(event) {
-    // TODO: Fix old selection when tab changes
     if (event === 0) {
       setSelected(roomRef.current.value)
     } else {

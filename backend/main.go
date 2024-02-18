@@ -430,6 +430,25 @@ func main() {
 		return c.JSON(http.StatusOK, response)
 	})
 
+	e.GET("/building/stream", func (c echo.Context) error {
+		var response struct {
+			Success     bool   `json:"success"`
+			Message     string `json:"message"omitempty`
+			Data []utils.Returnable `json:"data"`
+		}
+
+		building := c.Request().URL.Query().Get("building")
+		targetTime := c.Request().URL.Query().Get("time")
+		if building == "" || targetTime == "" {
+			response.Success = false
+			response.Message = "No building given."
+			return c.JSON(http.StatusBadRequest, response)
+		}
+		utils.StreamGetFreeRoomsInBuilding(c, building, targetTime)
+
+		return nil
+	})
+
 	e.GET("/stream", testStream)
 
 
