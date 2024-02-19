@@ -58,6 +58,7 @@ function App() {
  
   return (
     <>
+      <div className="wrapper">
       {
         showPrivacy ? (
           <Privacy />   
@@ -67,7 +68,7 @@ function App() {
         isError != null ? (
           <Center height={["auto", "100vh"]}>
             <Error error={isError} />
-            <Footer />
+            {/* <Footer /> */}
           </Center>
         ) : null
       }
@@ -76,7 +77,7 @@ function App() {
           // <Center height={["auto", "100vh"]}>
           <Center height="auto">
             <RoomSearch />   
-            <Footer />
+            {/* <Footer /> */}
           </Center>
         ) : null 
       }
@@ -84,7 +85,7 @@ function App() {
         signedIn && !isLoading && isError == null && !showPrivacy && !showRooms ? (
           <Center height={["auto", "100vh"]}>
             <SignedIn setSignIn={setSignIn} data={data} /> 
-            <Footer />
+            {/* <Footer /> */}
           </Center>
         ) : null 
       }
@@ -92,7 +93,7 @@ function App() {
         isLoading && !signedIn && isError == null && !showPrivacy && !showRooms ? (
           <Center height={["auto", "100vh"]}>
             <LoggingIn />
-            <Footer />
+            {/* <Footer /> */}
           </Center>
         ) : null
       }
@@ -118,7 +119,7 @@ function App() {
                 <ChevronDownIcon fontSize="3xl" mt={2} />
               </Link>
 
-              <Footer />
+              {/* <Footer /> */}
             </VStack>
             </Center>
             <Center m={2} id="info" mb={20}>
@@ -152,7 +153,8 @@ function App() {
           </>
         ) : null
       }
-
+      <Footer />
+    </div>
     </>
   )
 }

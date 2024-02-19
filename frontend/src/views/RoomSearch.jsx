@@ -35,8 +35,8 @@ import { fetchEventSource } from "@microsoft/fetch-event-source"
 import convertToFriendly from '../utils/timeFormat';
 
 export default function RoomSearch() {
-  // const apiEndpoint = "https://api-ts.jamesz.dev";
-  const apiEndpoint = "http://localhost:1323";
+  const apiEndpoint = "https://api-ts.jamesz.dev";
+  // const apiEndpoint = "http://localhost:1323";
   const toast = useToast()
 
   // 0 = inputs for search
@@ -179,6 +179,13 @@ export default function RoomSearch() {
                 if (!!e) {
                     console.log('Fetch onerror', e);
                     // do something with this error
+                    toast({
+                      title: 'Error from event stream..',
+                      description: "The event stream triggered an error! Error: " + err.toString(),
+                      status: 'error',
+                      duration: 5000,
+                      isClosable: true,
+                    })
                 }
 
                 controller.abort();
@@ -216,80 +223,26 @@ export default function RoomSearch() {
 
                 } catch (e) {
                     console.log('Fetch onmessage error', e);
+                    toast({
+                      title: 'Failed to parse event..',
+                      description: "Couldn't understand data from api. Error: " + err.toString(),
+                      status: 'error',
+                      duration: 5000,
+                      isClosable: true,
+                    })
                 }
             },
         })
     } catch (e) {
-        console.log('Error', e);
+        console.error('Error', e);
+        toast({
+          title: 'Unexpected error occurred..',
+          description: "Couldn't get data from api. Error: " + err.toString(),
+          status: 'error',
+          duration: 5000,
+          isClosable: true,
+        })
     }
-
-  //   fetch(apiEndpoint + `/building?building=${selected.split(" - ")[0]}&time=${targetTime}`)
-  //   .then(response => {
-  //     // Get the readable stream from the response body
-  //     const stream = response.body;
-  //     // Get the reader from the stream
-  //     const reader = stream.getReader();
-  //     // Define a function to read each chunk
-  //     const readChunk = () => {
-  //         // Read a chunk from the reader
-  //         reader.read()
-  //             .then(({
-  //                 value,
-  //                 done
-  //             }) => {
-  //                 // Check if the stream is done
-  //                 if (done) {
-  //                     // Log a message
-  //                     console.log('Stream finished');
-  //                     // Return from the function
-  //                     return;
-  //                 }
-  //                 // Convert the chunk value to a string
-  //                 const chunkString = new TextDecoder().decode(value);
-  //                 // Log the chunk string
-  //                 console.log(chunkString);
-  //                 // Read the next chunk
-  //                 readChunk();
-  //             })
-  //             .catch(error => {
-  //                 // Log the error
-  //                 console.error(error);
-  //             });
-  //     };
-  //     // Start reading the first chunk
-  //     readChunk();
-  // })
-  // .catch(error => {
-  //     // Log the error
-  //     console.error(error);
-  // });
-  //   .then(response => response.json())
-  //   .then(data => {
-  //     if (!data.success) {
-  //       toast({
-  //         title: 'Failed to preform request..',
-  //         description: "Couldn't get data from api. Error: " + err.toString(),
-  //         status: 'error',
-  //         duration: 5000,
-  //         isClosable: true,
-  //       })
-  //       return;
-  //     } else {
-  //       console.log("RESPONSE ")
-  //       console.log(data)
-  //       setResults(data.data)
-  //       setInputState(2)
-  //     }
-  //   })
-  //   .catch(err => {
-  //     toast({
-  //       title: 'Failed to preform request..',
-  //       description: "Couldn't get data from api. Error: " + err.toString(),
-  //       status: 'error',
-  //       duration: 5000,
-  //       isClosable: true,
-  //     })
-  //   })
   }
 
   const reset = () => {
@@ -383,7 +336,7 @@ export default function RoomSearch() {
 
 
   return (
-    <Box bgColor="gray.200" borderRadius="2em" width="30em" overflow="auto" p={3} pb={5}>
+    <Box bgColor="gray.200" borderRadius="2em" width="30em" overflow="auto" p={3} pb={5} mt={10}>
       <Heading textAlign="center" fontSize="3xl">DCU Room Availability Checker</Heading>
 
       <Tabs onChange={refreshSelectedState}>
@@ -552,9 +505,7 @@ export default function RoomSearch() {
                             <Td>{res.id}</Td>
                             <Td>{nextEv}</Td>
                           </Tr>
-                          // <Text key={res.id}>{res.id} - {nextEv}</Text>
                         )
-
                       }
                       )
                     }
@@ -562,24 +513,6 @@ export default function RoomSearch() {
                   </Tbody>
                 </Table>
               </TableContainer>
-                {/* {
-                  Array.isArray(searchResults) &&
-                  searchResults?.map(res => {
-                    let nextEv;
-                    if (new Date(res.nextEvent?.began).getFullYear() === 0) {
-                      nextEv = "No events for the remainder of today."
-                    } else {
-                      nextEv = "Next Event @ " + convertToFriendly(res.nextEvent?.began)
-                    }
-
-                    return (
-                      <Text key={res.id}>{res.id} - {nextEv}</Text>
-                    )
-
-                  }
-                  )
-                } */}
-
               <Button colorScheme='purple' size="sm" w="100%" mt={4} onClick={reset} isDisabled={inputState === 3}><SearchIcon mr={2}/> Search Again</Button>
             </Box>
           </TabPanel>
