@@ -42,8 +42,12 @@ export default function RoomSearch() {
   // 0 = inputs for search
   // 1 = searching
   // 2 = showing search results
+  // 3 = streaming results
   const [inputState, setInputState] = useState(0)
   const [searchResults, setResults] = useState(null)
+
+
+  let controller;
 
   const roomRef = useRef(null)
   const buildingRef = useRef(null)
@@ -157,13 +161,13 @@ export default function RoomSearch() {
       targetTime = selectedTime
     }
 
-    const ctrl = new AbortController();
+    controller = new AbortController();
 
     try {
-        await fetchEventSource(apiEndpoint + `/building?building=${selected.split(" - ")[0]}&time=${targetTime}`, {
+        await fetchEventSource(apiEndpoint + `/building/stream?building=${selected.split(" - ")[0]}&time=${targetTime}`, {
             method: 'GET',
             headers: {},
-            signal: ctrl.signal,
+            signal: controller.signal,
 
             onopen: async (res) => {
                 const contentType = res.headers.get('content-type');
@@ -178,21 +182,52 @@ export default function RoomSearch() {
                     // do something with this error
                 }
 
-                // ctrl.abort();
+                controller.abort();
 
                 throw e;
             },
             onmessage: async (ev) => {
+                console.log("data received.")
+                if (ev.event === "end") {
+                  console.log("transmission finished.")
+                  setInputState(2)
+                  controller.abort();
+                  return
+                }
                 const data = ev.data;
 
                 if (!data) {
                     return;
                 }
 
+                // if (inputState === 0) {
+                //   console.log("input state is 0, aborting event stream...", inputState)
+                //   controller.abort();
+                // }
+
+
                 try {
                     const d = JSON.parse(data);
 
-                    console.log(d.value);
+
+                    setResults(prev => {
+                      if (!prev) {
+                        let newArr = []
+                        newArr.push(d)
+                        return newArr
+                      } else {
+                        return prev.concat(d)
+                      }
+                    })
+
+                    // console.log(d);
+                    // if (!searchResults) {
+                    //   setResults([d]);
+                    // } else {
+                    //   await setResults([...searchResults, d])
+                    // }
+
+                    setInputState(3)
                 } catch (e) {
                     console.log('Fetch onmessage error', e);
                 }
@@ -477,14 +512,14 @@ export default function RoomSearch() {
               </Select>
               <Button colorScheme='green' w="100%" mt={4} onClick={searchBuilding}><SearchIcon mr={2} /> Search</Button>
             </Box>
-            <Stack direction="column" hidden={inputState !== 1}>
+            <Stack direction="column" hidden={inputState !== 1 && inputState !== 3}>
               <Center>
                 <Spinner />
               </Center>
               <Text textAlign="center">Searching... Please wait a moment :)</Text>
             </Stack>
             
-            <Box hidden={inputState !== 2}>
+            <Box hidden={inputState !== 2 && inputState !== 3}>
                 <Text textAlign="center"><b>{selected}</b></Text>
                 <Text mb={2} textAlign="center" color="gray.600"><b>{targetTime}</b></Text>
                 <Center>

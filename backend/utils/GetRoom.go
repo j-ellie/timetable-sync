@@ -336,6 +336,10 @@ func StreamGetFreeRoomsInBuilding(c echo.Context, buildingName string, targetTim
 	c.Response().Header().Set("X-Accel-Buffering", "no")
     c.Response().WriteHeader(http.StatusOK)
 
+	var response struct {
+		Data Returnable `json:"data"`
+	}
+
 	var returnables []Returnable
 	for _, room := range rooms {
 		if strings.HasPrefix(room.ID, buildingName) {
@@ -344,9 +348,17 @@ func StreamGetFreeRoomsInBuilding(c echo.Context, buildingName string, targetTim
 			if err == nil && curr.Available {
 				returnables = append(returnables, curr)
 
-				c.Response().Write([]byte(fmt.Sprintf("event: message\n")))
-				c.Response().Write([]byte(fmt.Sprintf("data: ", curr.RoomID)))
-				c.Response().Write([]byte(fmt.Sprintf("\n\n")))
+				response.Data = curr
+
+
+				c.Response().Write([]byte("event: message\n"))
+				data, err := json.Marshal(curr)
+				if err != nil {
+					return nil, err
+				}
+				c.Response().Write([]byte("data:"))
+				c.Response().Write([]byte(data))
+				c.Response().Write([]byte("\n\n"))
 				// if err != nil {
 				// 	return nil, err
 				// }
@@ -355,6 +367,11 @@ func StreamGetFreeRoomsInBuilding(c echo.Context, buildingName string, targetTim
 		}
 		// ids = append(ids, room.ID + " - " + room.FriendlyName)
 	}
+
+	c.Response().Write([]byte("event: end\n"))
+	c.Response().Write([]byte("data: no"))
+	c.Response().Write([]byte("\n\n"))
+
 	return returnables, nil
 }
 
