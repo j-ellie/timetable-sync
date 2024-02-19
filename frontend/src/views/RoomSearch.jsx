@@ -47,8 +47,6 @@ export default function RoomSearch() {
   const [searchResults, setResults] = useState(null)
 
 
-  let controller;
-
   const roomRef = useRef(null)
   const buildingRef = useRef(null)
 
@@ -123,8 +121,6 @@ export default function RoomSearch() {
         })
         return;
       } else {
-        console.log("RESPONSE ")
-        console.log(data)
         setResults(data.data)
         setInputState(2)
       }
@@ -150,6 +146,7 @@ export default function RoomSearch() {
       })
       return
     }
+
     setInputState(1)
 
     let targetTime;
@@ -161,7 +158,7 @@ export default function RoomSearch() {
       targetTime = selectedTime
     }
 
-    controller = new AbortController();
+    let controller = new AbortController()
 
     try {
         await fetchEventSource(apiEndpoint + `/building/stream?building=${selected.split(" - ")[0]}&time=${targetTime}`, {
@@ -200,15 +197,8 @@ export default function RoomSearch() {
                     return;
                 }
 
-                // if (inputState === 0) {
-                //   console.log("input state is 0, aborting event stream...", inputState)
-                //   controller.abort();
-                // }
-
-
                 try {
                     const d = JSON.parse(data);
-
 
                     setResults(prev => {
                       if (!prev) {
@@ -219,15 +209,9 @@ export default function RoomSearch() {
                         return prev.concat(d)
                       }
                     })
-
-                    // console.log(d);
-                    // if (!searchResults) {
-                    //   setResults([d]);
-                    // } else {
-                    //   await setResults([...searchResults, d])
-                    // }
-
                     setInputState(3)
+
+
                 } catch (e) {
                     console.log('Fetch onmessage error', e);
                 }
