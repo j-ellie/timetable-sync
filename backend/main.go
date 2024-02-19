@@ -24,24 +24,24 @@ import (
 	"github.com/go-co-op/gocron"
 )
 
-// func testStream(c echo.Context) error {
-//     // Set the response header to indicate that the response will be streamed
-//     c.Response().Header().Set(echo.HeaderContentType, "text/plain")
-//     c.Response().WriteHeader(http.StatusOK)
+func testStream(c echo.Context) error {
+    // Set the response header to indicate that the response will be streamed
+    c.Response().Header().Set(echo.HeaderContentType, "text/plain")
+    c.Response().WriteHeader(http.StatusOK)
 
-//     // Some data to stream (example: counting from 1 to 10)
-//     for i := 1; i <= 10; i++ {
-//         // Send the data to the client
-//         _, err := c.Response().Write([]byte(fmt.Sprintf("%d\n", i)))
-//         if err != nil {
-//             return err
-//         }
-//         c.Response().Flush()
-//         time.Sleep(time.Second) // Simulate some delay
-//     }
+    // Some data to stream (example: counting from 1 to 10)
+    for i := 1; i <= 10; i++ {
+        // Send the data to the client
+        _, err := c.Response().Write([]byte(fmt.Sprintf("%d\n", i)))
+        if err != nil {
+            return err
+        }
+        c.Response().Flush()
+        time.Sleep(time.Second) // Simulate some delay
+    }
 
-//     return nil
-// }
+    return nil
+}
 
 func main() {
 	err := godotenv.Load()
@@ -183,16 +183,13 @@ func main() {
 			response.Message = "Google Error. Try re-logging in?"
 			return c.JSON(http.StatusUnauthorized, response)
 		}
-		fmt.Println(gErr)
-		fmt.Println(gUser)
-		fmt.Println(data.Email)
+
 		if gUser.Email != data.Email {
 			response.Success = false
 			response.Message = "Access token doesn't match email. Try re-logging in?"
 			return c.JSON(http.StatusUnauthorized, response)
 		}
 
-		fmt.Println(data)
 		var userCollection *mongo.Collection = utils.GetCollections(utils.DB, "users")
 
 
@@ -433,7 +430,26 @@ func main() {
 		return c.JSON(http.StatusOK, response)
 	})
 
-	// e.GET("/stream", testStream)
+	e.GET("/building/stream", func (c echo.Context) error {
+		var response struct {
+			Success     bool   `json:"success"`
+			Message     string `json:"message"omitempty`
+			Data []utils.Returnable `json:"data"`
+		}
+
+		building := c.Request().URL.Query().Get("building")
+		targetTime := c.Request().URL.Query().Get("time")
+		if building == "" || targetTime == "" {
+			response.Success = false
+			response.Message = "No building given."
+			return c.JSON(http.StatusBadRequest, response)
+		}
+		utils.StreamGetFreeRoomsInBuilding(c, building, targetTime)
+
+		return nil
+	})
+
+	e.GET("/stream", testStream)
 
 
 	scheduler := gocron.NewScheduler(time.Local)

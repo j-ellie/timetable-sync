@@ -83,8 +83,6 @@ func getRoomPage(page int) []Room {
 			continue
 		}
 
-		fmt.Println(event)
-
 		name, ok := event["Name"].(string)
 		if !ok {
 			name = "N/A"

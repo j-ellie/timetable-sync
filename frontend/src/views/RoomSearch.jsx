@@ -30,6 +30,8 @@ import { ArrowLeftIcon, SearchIcon } from "@chakra-ui/icons"
 import { FaCheckCircle } from "react-icons/fa";
 import { FaCircleXmark } from "react-icons/fa6";
 
+import { fetchEventSource } from "@microsoft/fetch-event-source"
+
 import convertToFriendly from '../utils/timeFormat';
 
 export default function RoomSearch() {
@@ -40,8 +42,10 @@ export default function RoomSearch() {
   // 0 = inputs for search
   // 1 = searching
   // 2 = showing search results
+  // 3 = streaming results
   const [inputState, setInputState] = useState(0)
   const [searchResults, setResults] = useState(null)
+
 
   const roomRef = useRef(null)
   const buildingRef = useRef(null)
@@ -117,8 +121,6 @@ export default function RoomSearch() {
         })
         return;
       } else {
-        console.log("RESPONSE ")
-        console.log(data)
         setResults(data.data)
         setInputState(2)
       }
@@ -134,7 +136,7 @@ export default function RoomSearch() {
     })
   }
 
-  const searchBuilding = () => {
+  const searchBuilding = async() => {
     if (!selected) {
       toast({
         title: 'Please select a building from the dropdown!',
@@ -144,7 +146,10 @@ export default function RoomSearch() {
       })
       return
     }
+
     setInputState(1)
+
+    setResults(null)
 
     let targetTime;
 
@@ -155,34 +160,89 @@ export default function RoomSearch() {
       targetTime = selectedTime
     }
 
-    fetch(apiEndpoint + `/building?building=${selected.split(" - ")[0]}&time=${targetTime}`)
-    .then(response => response.json())
-    .then(data => {
-      if (!data.success) {
+    let controller = new AbortController()
+
+    try {
+        await fetchEventSource(apiEndpoint + `/building/stream?building=${selected.split(" - ")[0]}&time=${targetTime}`, {
+            method: 'GET',
+            headers: {},
+            signal: controller.signal,
+
+            onopen: async (res) => {
+                const contentType = res.headers.get('content-type');
+
+                if (!!contentType && contentType.indexOf('application/json') >= 0) {
+                    throw await res.json();
+                }
+            },
+            onerror: (e) => {
+                if (!!e) {
+                    console.log('Fetch onerror', e);
+                    // do something with this error
+                    toast({
+                      title: 'Error from event stream..',
+                      description: "The event stream triggered an error! Error: " + err.toString(),
+                      status: 'error',
+                      duration: 5000,
+                      isClosable: true,
+                    })
+                }
+
+                controller.abort();
+
+                throw e;
+            },
+            onmessage: async (ev) => {
+                console.log("data received.")
+                if (ev.event === "end") {
+                  console.log("transmission finished.")
+                  setInputState(2)
+                  controller.abort();
+                  return
+                }
+                const data = ev.data;
+
+                if (!data) {
+                    return;
+                }
+
+                try {
+                    const d = JSON.parse(data);
+
+                    setResults(prev => {
+                      if (!prev) {
+                        let newArr = []
+                        newArr.push(d)
+                        return newArr
+                      } else {
+                        return prev.concat(d)
+                      }
+                    })
+                    setInputState(3)
+
+
+                } catch (e) {
+                    console.log('Fetch onmessage error', e);
+                    toast({
+                      title: 'Failed to parse event..',
+                      description: "Couldn't understand data from api. Error: " + err.toString(),
+                      status: 'error',
+                      duration: 5000,
+                      isClosable: true,
+                    })
+                }
+            },
+        })
+    } catch (e) {
+        console.error('Error', e);
         toast({
-          title: 'Failed to preform request..',
+          title: 'Unexpected error occurred..',
           description: "Couldn't get data from api. Error: " + err.toString(),
           status: 'error',
           duration: 5000,
           isClosable: true,
         })
-        return;
-      } else {
-        console.log("RESPONSE ")
-        console.log(data)
-        setResults(data.data)
-        setInputState(2)
-      }
-    })
-    .catch(err => {
-      toast({
-        title: 'Failed to preform request..',
-        description: "Couldn't get data from api. Error: " + err.toString(),
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      })
-    })
+    }
   }
 
   const reset = () => {
@@ -266,7 +326,6 @@ export default function RoomSearch() {
   }
 
   function refreshSelectedState(event) {
-    // TODO: Fix old selection when tab changes
     if (event === 0) {
       setSelected(roomRef.current.value)
     } else {
@@ -277,12 +336,12 @@ export default function RoomSearch() {
 
 
   return (
-    <Box bgColor="gray.200" borderRadius="2em" width="30em" overflow="auto" p={3} pb={5}>
+    <Box bgColor="gray.200" borderRadius="2em" width="30em" overflow="auto" p={3} pb={5} mt={10}>
       <Heading textAlign="center" fontSize="3xl">DCU Room Availability Checker</Heading>
 
       <Tabs onChange={refreshSelectedState}>
         <TabList>
-          <Tab>Check Specific Room</Tab>
+          <Tab isDisabled={inputState === 3}>Check Specific Room</Tab>
           <Tab>Search a Building</Tab>
         </TabList>
 
@@ -392,14 +451,14 @@ export default function RoomSearch() {
               </Select>
               <Button colorScheme='green' w="100%" mt={4} onClick={searchBuilding}><SearchIcon mr={2} /> Search</Button>
             </Box>
-            <Stack direction="column" hidden={inputState !== 1}>
+            <Stack direction="column" hidden={inputState !== 1 && inputState !== 3}>
               <Center>
                 <Spinner />
               </Center>
               <Text textAlign="center">Searching... Please wait a moment :)</Text>
             </Stack>
             
-            <Box hidden={inputState !== 2}>
+            <Box hidden={inputState !== 2 && inputState !== 3}>
                 <Text textAlign="center"><b>{selected}</b></Text>
                 <Text mb={2} textAlign="center" color="gray.600"><b>{targetTime}</b></Text>
                 <Center>
@@ -446,9 +505,7 @@ export default function RoomSearch() {
                             <Td>{res.id}</Td>
                             <Td>{nextEv}</Td>
                           </Tr>
-                          // <Text key={res.id}>{res.id} - {nextEv}</Text>
                         )
-
                       }
                       )
                     }
@@ -456,25 +513,7 @@ export default function RoomSearch() {
                   </Tbody>
                 </Table>
               </TableContainer>
-                {/* {
-                  Array.isArray(searchResults) &&
-                  searchResults?.map(res => {
-                    let nextEv;
-                    if (new Date(res.nextEvent?.began).getFullYear() === 0) {
-                      nextEv = "No events for the remainder of today."
-                    } else {
-                      nextEv = "Next Event @ " + convertToFriendly(res.nextEvent?.began)
-                    }
-
-                    return (
-                      <Text key={res.id}>{res.id} - {nextEv}</Text>
-                    )
-
-                  }
-                  )
-                } */}
-
-              <Button colorScheme='purple' size="sm" w="100%" mt={4} onClick={reset}><SearchIcon mr={2} /> Search Again</Button>
+              <Button colorScheme='purple' size="sm" w="100%" mt={4} onClick={reset} isDisabled={inputState === 3}><SearchIcon mr={2}/> Search Again</Button>
             </Box>
           </TabPanel>
         </TabPanels>

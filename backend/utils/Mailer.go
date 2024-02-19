@@ -16,13 +16,13 @@ func SendMail(subject string, toName string, toAddress string, plainContent stri
 	to := mail.NewEmail(toName, toAddress)
 	message := mail.NewSingleEmail(from, subject, to, plainContent, htmlContent)
 	client := sendgrid.NewSendClient(os.Getenv("SENDGRID_API_KEY"))
-	response, err := client.Send(message)
+	_, err := client.Send(message)
 	if err != nil {
         fmt.Println(err)
 		return false, err
     } else {
-        fmt.Println(response.StatusCode)
-        fmt.Println(response.Headers)
+        // fmt.Println(response.StatusCode)
+        // fmt.Println(response.Headers)
 		return true, nil
     }
 }
@@ -47,9 +47,9 @@ func SendWelcome(data models.User) error {
 	formattedString = strings.Replace(formattedString, "%EMAILNOTI%", emailNotifications, 1)
 
 
-	success, err2 := SendMail("Welcome to Timetable Sync", data.FirstName, data.Email, " ", string(formattedString))
-	fmt.Println(success)
-	fmt.Println(err2)
+	SendMail("Welcome to Timetable Sync", data.FirstName, data.Email, " ", string(formattedString))
+	// fmt.Println(success)
+	// fmt.Println(err2)
 	return nil
 }
 
@@ -81,9 +81,9 @@ func SendUpdate(data models.User, timetableStruct []Timetable) error {
 
 	currentTime := time.Now()
 	date := fmt.Sprintf("%02d/%02d/%d", currentTime.Day(), currentTime.Month(), currentTime.Year())
-	success, err2 := SendMail("Your timetable for " + date, data.FirstName, data.Email, " ", string(formattedString))
-	fmt.Println(success)
-	fmt.Println(err2)
+	SendMail("Your timetable for " + date, data.FirstName, data.Email, " ", string(formattedString))
+	// fmt.Println(success)
+	// fmt.Println(err2)
 
 	return nil
 }
@@ -99,9 +99,7 @@ func SendUpdateError(data models.User, problem string) error {
 	formattedString = strings.Replace(strContent, "%NAME%", data.FirstName, 1)
 	formattedString = strings.Replace(formattedString, "%ERROR%", problem, 1)
 
-	success, err2 := SendMail("Your timetable failed to sync.", data.FirstName, data.Email, " ", string(formattedString))
-	fmt.Println(success)
-	fmt.Println(err2)
+	SendMail("Your timetable failed to sync.", data.FirstName, data.Email, " ", string(formattedString))
 
 	return nil
 }
@@ -138,9 +136,7 @@ func SendUpdateReport(startTime time.Time, syncInfo string, report string) error
 	formattedString = strings.Replace(formattedString, "%REPORT%", report, 1)
 
 	date := fmt.Sprintf("%02d/%02d/%d", currentTime.Day(), currentTime.Month(), currentTime.Year())
-	success, err2 := SendMail("Global sync report for " + date, "tsadmin", "james@jamesz.dev", " ", string(formattedString))
-	fmt.Println(success)
-	fmt.Println(err2)
+	SendMail("Global sync report for " + date, "tsadmin", "james@jamesz.dev", " ", string(formattedString))
 
 	return nil
 }
