@@ -149,6 +149,8 @@ export default function RoomSearch() {
 
     setInputState(1)
 
+    setResults(null)
+
     let targetTime;
 
     if (isToday === "true") {
@@ -386,7 +388,7 @@ export default function RoomSearch() {
 
       <Tabs onChange={refreshSelectedState}>
         <TabList>
-          <Tab>Check Specific Room</Tab>
+          <Tab isDisabled={inputState === 3}>Check Specific Room</Tab>
           <Tab>Search a Building</Tab>
         </TabList>
 
@@ -578,7 +580,7 @@ export default function RoomSearch() {
                   )
                 } */}
 
-              <Button colorScheme='purple' size="sm" w="100%" mt={4} onClick={reset}><SearchIcon mr={2} /> Search Again</Button>
+              <Button colorScheme='purple' size="sm" w="100%" mt={4} onClick={reset} isDisabled={inputState === 3}><SearchIcon mr={2}/> Search Again</Button>
             </Box>
           </TabPanel>
         </TabPanels>
