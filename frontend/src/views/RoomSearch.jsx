@@ -24,7 +24,8 @@ import {
   Th,
   Td,
   TableCaption,
-  TableContainer, } from '@chakra-ui/react'
+  TableContainer,
+  Input, } from '@chakra-ui/react'
 import React, { useState, useEffect, useRef } from 'react'
 import { ArrowLeftIcon, SearchIcon } from "@chakra-ui/icons"
 import { FaCheckCircle } from "react-icons/fa";
@@ -38,6 +39,8 @@ export default function RoomSearch() {
   const apiEndpoint = "https://api-ts.jamesz.dev";
   // const apiEndpoint = "http://localhost:1323";
   const toast = useToast()
+
+  const [allRooms, setAllRooms] = useState([])
 
   // 0 = inputs for search
   // 1 = searching
@@ -275,6 +278,7 @@ export default function RoomSearch() {
       } else {
         setRooms([])
         setRooms(data.ids)
+        setAllRooms(data.ids)
       }
     })
     .catch(err => {
@@ -334,6 +338,27 @@ export default function RoomSearch() {
     setInputState(0)
   }
 
+  const filterRoomSelect = (e) => {
+    const value = e.target.value;
+
+    let newFilter = [];
+
+    if (!value || value === "") {
+      // console.log(">> Defaulting filter: ", allRooms)
+
+      setRooms(allRooms)
+    } else {
+      allRooms.forEach(r => {
+        const isVisible = r.toLowerCase().includes(value.toLowerCase())
+        if (isVisible) {
+          newFilter.push(r)
+        }
+      })
+      // console.log(">> Updated filter: ", newFilter)
+      setRooms(newFilter)
+    }
+
+  }
 
   return (
     <Box bgColor="gray.200" borderRadius="2em" width="30em" overflow="auto" p={3} pb={5} mt={10}>
@@ -348,6 +373,7 @@ export default function RoomSearch() {
         <TabPanels>
           <TabPanel>
             <Box hidden={inputState !== 0}>
+                <Input placeholder="Search for a Room" mb={1} size="sm" onChange={filterRoomSelect} borderColor="gray.300"/>
                 <Select variant="filled" placeholder='Select Room' cursor="pointer" onChange={makeSelection} ref={roomRef}>
                   {availableRooms.map(r => (
                     <option value={r} key={r}>{r}</option>
