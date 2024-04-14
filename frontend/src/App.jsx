@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import './App.css'
-import { Center, Text, Image, Button, Heading, VStack, Icon, OrderedList, UnorderedList, ListItem, Link } from '@chakra-ui/react'
+import { Center, Text, Image, Button, Heading, VStack, Icon, OrderedList, UnorderedList, ListItem, Link, Alert, AlertTitle, AlertDescription, AlertIcon } from '@chakra-ui/react'
 import { ChevronDownIcon } from '@chakra-ui/icons'
 import { GoogleLogin, useGoogleLogin } from '@react-oauth/google'
 import SignedIn from './views/SignedIn';
@@ -101,6 +101,11 @@ function App() {
       {
         !isLoading && !signedIn && isError == null && !showPrivacy && !showRooms ? (
           <>
+          <Alert status='warning'>
+            <AlertIcon />
+            <AlertTitle>Goodluck in your Exams!</AlertTitle>
+            <AlertDescription>Semester 2 has come to an end, so Timetable Sync has gone on break. The <a href="/room-checker" style={{ textDecoration: "underline", fontWeight: "bold"}}>Room Availability Checker</a> is still up and working :)</AlertDescription>
+          </Alert>
             <Center height="100vh">
             <VStack m={2}>
               <Heading>Timetable Sync</Heading>
