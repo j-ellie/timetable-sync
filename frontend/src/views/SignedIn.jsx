@@ -1,12 +1,13 @@
-import { Box, Text, Heading, Select, FormLabel, Switch, FormControl, Tooltip, Button, Link, Input, Avatar, Center, useToast, InputGroup, InputRightElement, HStack } from '@chakra-ui/react'
+import { Box, Text, Heading, Select, FormLabel, Switch, FormControl, Tooltip, Button, Link, Input, Avatar, Center, useToast, InputGroup, InputRightElement, HStack, useDisclosure } from '@chakra-ui/react'
 import React, { useState, useEffect, useRef } from 'react'
 import { QuestionIcon } from "@chakra-ui/icons"
 import { googleLogout } from '@react-oauth/google'
 import DeleteAccount from '../components/DeleteAccount'
+import Admin from '../components/Admin'
 
 export default function LoggingIn({ setSignIn, data }) {
-  const apiEndpoint = "https://api-ts.jamesz.dev";
-  // const apiEndpoint = "http://localhost:1323";
+  // const apiEndpoint = "https://api-ts.jamesz.dev";
+  const apiEndpoint = "http://localhost:1323";
   const toast = useToast()
   const [processing, setProcessing] = useState(false)
   const [availableCourses, setCourses] = useState([]) 
@@ -15,6 +16,9 @@ export default function LoggingIn({ setSignIn, data }) {
   const [loadedCourses, setLoadedCourses] = useState(false)
 
   const [localIgnores, setLocalIgnores] = useState([])
+
+  const { isOpen, onOpen, onClose } = useDisclosure()
+
 
   useEffect(() => {
     if (loadedCourses) return;
@@ -281,6 +285,8 @@ export default function LoggingIn({ setSignIn, data }) {
           <Button colorScheme='blue' w="100%" mt={4} onClick={sync} isDisabled={processing}>Sync Now</Button>
           <DeleteAccount processing={processing} setProcessing={setProcessing} setSignIn={setSignIn} formData={formData} apiEndpoint={apiEndpoint} />
         </HStack>
+        <Button colorScheme='purple' w="100%" mt={4} hidden={!data.data.admin} onClick={onOpen}>Admin Menu</Button>
+        <Admin isOpen={isOpen} onClose={onClose} apiEndpoint={apiEndpoint} userEmail={data.data.email} userId={data.data.google_id} userToken={data.data.access_token} />
     </Box>
   )
 }

@@ -270,6 +270,86 @@ func main() {
 		return c.JSON(http.StatusOK, response)
 	})
 
+	e.GET("/admin", func(c echo.Context) error {
+		// Requires Token, Email and userId headers
+		// Verify token with database, get email and userid and match with google api
+		auth := c.Request().Header.Get("Authorization")
+		email := c.Request().Header.Get("userEmail")
+		id := c.Request().Header.Get("userId")
+
+		var response struct {
+			Success     bool   			`json:"success"`
+			Message     string 			`json:"message"omitempty`
+			Users       []models.CensoredUser 	`json:"users"omitempty`
+			DailySync   bool 			`json:"daily_sync"omitempty`
+		}
+
+		gUser, gErr := utils.GetGoogleUser(auth)
+		if gErr != nil {
+			fmt.Println(gErr)
+			response.Success = false
+			response.Message = "Google Error. Try re-logging in?"
+			return c.JSON(http.StatusUnauthorized, response)
+		}
+
+
+		if gUser.Email == "" || gUser.Email != email || gUser.ID != id {
+			response.Success = false
+			response.Message = "Access token doesn't match email. Try re-logging in?"
+			return c.JSON(http.StatusUnauthorized, response)
+		}
+
+		ctx := context.Background()		
+
+		var user models.User
+		var userCollection *mongo.Collection = utils.GetCollections(utils.DB, "users")
+		dbErr := userCollection.FindOne(ctx, bson.M{"email" : gUser.Email, "access_token" : auth, "google_id": id}).Decode(&user)
+		if dbErr != nil {
+			fmt.Println(dbErr)
+			response.Success = false
+			response.Message = "Error occurred."
+			return c.JSON(http.StatusUnauthorized, response)
+		}
+
+		if user.Email == "" || !user.Admin {
+			response.Success = false
+			response.Message = "Failed to pass authorization checks."
+			return c.JSON(http.StatusUnauthorized, response)
+		}
+
+		if user.Email != email || user.GoogleID != id {
+			response.Success = false
+			response.Message = "Failed to pass authorization checks."
+			return c.JSON(http.StatusUnauthorized, response)
+		}
+
+		cursor, err := userCollection.Find(ctx, bson.M{})
+		if err != nil {
+			fmt.Println("Failed to find all documents:", err)
+			return err
+		}
+
+		var users []models.CensoredUser
+
+		defer cursor.Close(ctx)
+		for cursor.Next(ctx) {
+			var result models.CensoredUser
+			err := cursor.Decode(&result)
+			if err != nil {
+				fmt.Println("Failed to decode document: ", err)
+			}
+
+			users = append(users, result)
+		}
+
+		response.Success = true
+		response.Message = "Authorized"
+		response.Users = users
+		response.DailySync = os.Getenv("RUN_AUTO") == "true"
+
+		return c.JSON(http.StatusOK, response)
+	})
+
 	e.GET("/courses", func(c echo.Context) error {
 		ids, err := utils.GetAllCodes()
 

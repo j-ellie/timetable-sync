@@ -2,7 +2,7 @@ import React from 'react'
 
 export default function GoogleSignin({ registerClick }) {
   return (
-    <button class="gsi-material-button" onClick={() => { registerClick() }} disabled style={{ cursor: "not-allowed"}}>
+    <button class="gsi-material-button" onClick={() => { registerClick() }}>
     <div class="gsi-material-button-state"></div>
     <div class="gsi-material-button-content-wrapper">
         <div class="gsi-material-button-icon">

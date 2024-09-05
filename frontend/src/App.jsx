@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import './App.css'
-import { Center, Text, Image, Button, Heading, VStack, Icon, OrderedList, UnorderedList, ListItem, Link, Alert, AlertTitle, AlertDescription, AlertIcon } from '@chakra-ui/react'
+import { Center, Text, Image, Button, Heading, VStack, Icon, OrderedList, UnorderedList, ListItem, Link, Alert, AlertTitle, AlertDescription, AlertIcon, Flex } from '@chakra-ui/react'
 import { ChevronDownIcon } from '@chakra-ui/icons'
 import { GoogleLogin, useGoogleLogin } from '@react-oauth/google'
 import SignedIn from './views/SignedIn';
@@ -23,7 +23,8 @@ function App() {
   const login = useGoogleLogin({
     onSuccess: codeResponse => {
       setLoading(true)
-      fetch("https://api-ts.jamesz.dev/auth", {headers: {"code": codeResponse.code}, method: "POST"})
+      // fetch("https://api-ts.jamesz.dev/auth", {headers: {"code": codeResponse.code}, method: "POST"})
+      fetch("http://localhost:1323/auth", {headers: {"code": codeResponse.code}, method: "POST"})
       .then(response => response.json())
       .then(data => {
         console.log("Logged In Successfully")
@@ -75,8 +76,12 @@ function App() {
       {
         showRooms ? (
           // <Center height={["auto", "100vh"]}>
-          <Center height="auto">
+          <Center height="90vh">
             <RoomSearch />   
+            {/* <Flex direction="column" textAlign="center">
+              <Heading>Service Unavailable</Heading>
+              <Text>Room Search is disabled at this time.</Text>
+            </Flex> */}
             {/* <Footer /> */}
           </Center>
         ) : null 
@@ -101,22 +106,22 @@ function App() {
       {
         !isLoading && !signedIn && isError == null && !showPrivacy && !showRooms ? (
           <>
-          <Alert status='warning'>
+          <Alert status='success'>
             <AlertIcon />
-            <AlertTitle>Goodluck in your Exams!</AlertTitle>
-            <AlertDescription>Semester 2 has come to an end, so Timetable Sync has gone on break. The <a href="/room-checker" style={{ textDecoration: "underline", fontWeight: "bold"}}>Room Availability Checker</a> is still up and working :)</AlertDescription>
+            <AlertTitle>Welcome Back!</AlertTitle>
+            <AlertDescription>Timetable Sync is ready to sync your timetable!</AlertDescription>
           </Alert>
             <Center height="100vh">
             <VStack m={2}>
               <Heading>Timetable Sync</Heading>
-              <Text mt={2}>The easy way to sync your DCU timetable on Google Calendar.</Text>
+              <Text mt={2}>The easy way to sync your DCU timetable to Google Calendar.</Text>
               <Text>To get started, just log in with Google using the button below and change the settings to your likings!</Text>
               <Image mt={3} mb={3} src="/demo.png" h="300px" borderRadius="1em" alt="Example of synced timetable." />
               <GoogleSignin registerClick={login}/>
               {/* <Button colorScheme="gray" onClick={() => { login() }} isDisabled={false}>
                 <Icon as={FcGoogle} fontSize="3xl" mr={3} bgColor="white" p={1} borderRadius="50px" /> Sign in with Google
               </Button> */}
-              <Button colorScheme="orange" onClick={() => { window.location.href = "/room-checker" }} isDisabled={false}>
+              <Button colorScheme="orange" onClick={() => { window.location.href = "/room-checker" }}>
                 Room Checker
               </Button>
 

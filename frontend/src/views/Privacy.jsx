@@ -14,7 +14,7 @@ export default function Privacy() {
         <Heading fontSize="2xl" as="h3" mt={2}>2. Information We Collect</Heading>
         <Text>We only collect data absolutely necessary for the App to function. This includes:</Text>
         <UnorderedList>
-            <ListItem><b>Basic information about your Google Account.</b> This includes your email, name, account ID & you're profile picture.</ListItem>
+            <ListItem><b>Basic information about your Google Account.</b> This includes your email, name, account ID & your profile picture.</ListItem>
             <ListItem><b>Google Calendar Access Tokens.</b> We store an access + refresh token to allow the App to access your Google Calendar. This is so the App can keep your timetable up to date. This access is strictly limited to Google Calendar, and can be revoked at any time via your Google Account.</ListItem>
             <ListItem><b>User Settings.</b> We store your settings you set on the App. This includes your Course Code, your sync time preference, email notifications and events you have set to be ignored.</ListItem>
         </UnorderedList>

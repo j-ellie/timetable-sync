@@ -18,4 +18,17 @@ type User struct {
 	SyncTime string `json:"sync_time" bson:"sync_time"omitempty`
 	EmailNotifications bool `json:"email_notif" bson:"email_notif"omitempty`
 	IgnoredEvents []string `json:"ignore_events" bson:"ignore_events"omitempty`
+	Admin bool `json:"admin" bson:"admin"omitempty`
+}
+
+type CensoredUser struct {
+	ID primitive.ObjectID `json:"_id" bson:"_id"`
+	Email string `json:"email" bson:"email"`
+	FirstName string `json:"name" bson:"name"`
+	LastSync time.Time `json:"last_sync" bson:"last_sync"omitempty`
+	CourseCode string `json:"course_code" bson:"course_code"omitempty`
+	SyncTime string `json:"sync_time" bson:"sync_time"omitempty`
+	EmailNotifications bool `json:"email_notif" bson:"email_notif"omitempty`
+	IgnoredEvents []string `json:"ignore_events" bson:"ignore_events"omitempty`
+	Admin bool `json:"admin" bson:"admin"omitempty`
 }

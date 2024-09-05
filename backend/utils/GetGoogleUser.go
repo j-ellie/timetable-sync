@@ -1,9 +1,9 @@
 package utils
 
 import (
-	"net/http"
 	"encoding/json"
 	"io"
+	"net/http"
 )
 
 type GoogleUserInfo struct {
@@ -43,6 +43,5 @@ func GetGoogleUser(userToken string) (GoogleUserInfo, error) {
 	if err != nil {
 		return emptyUserInfo, err
 	}
-
 	return userInfo, nil 
 }
