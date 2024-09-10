@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -349,7 +350,7 @@ func SyncTimetable(config oauth2.Config, accessToken string, refreshToken string
 	currentColorId := 0
 
 	if len(timetable) == 0 {
-		return nil
+		return errors.New("no events in fetched timetable")
 	}
 
 	for _, event := range timetable {

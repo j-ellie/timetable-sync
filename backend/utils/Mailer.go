@@ -28,7 +28,7 @@ func SendMail(subject string, toName string, toAddress string, plainContent stri
 }
 
 func SendWelcome(data models.User) error {
-	htmlContent, err := os.ReadFile("../emails/welcome.html")
+	htmlContent, err := os.ReadFile("emails/welcome.html")
 	if err != nil {
 		return err
 	}
@@ -50,6 +50,24 @@ func SendWelcome(data models.User) error {
 	SendMail("Welcome to Timetable Sync", data.FirstName, data.Email, " ", string(formattedString))
 	// fmt.Println(success)
 	// fmt.Println(err2)
+	return nil
+}
+
+func SendWelcomeBack(data models.User) error {
+	htmlContent, err := os.ReadFile("emails/welcomebackmsg.html")
+	if err != nil {
+		return err
+	}
+
+	var formattedString string
+	strContent := string(htmlContent)
+	formattedString = strings.Replace(strContent, "%NAME%", data.FirstName, 1)
+	// formattedString = strings.Replace(formattedString, "%COURSE_CODE%", data.CourseCode, 1)
+	// formattedString = strings.Replace(formattedString, "%FREQUENCY%", data.SyncTime, 1)
+	// formattedString = strings.Replace(formattedString, "%EMAILNOTI%", emailNotifications, 1)
+
+	SendMail("Update your course on TimetableSync", data.FirstName, data.Email, " ", string(formattedString))
+	
 	return nil
 }
 

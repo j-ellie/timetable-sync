@@ -106,12 +106,13 @@ export default function RoomSearch() {
 
     if (isToday === "true") {
       const now = new Date()
-      targetTime = now.toDateString() + " @ " + now.toTimeString().split(" ")[0];
+      // targetTime = now.toDateString() + " @ " + now.toTimeString().split(" ")[0];
+      targetTime = now;
     } else {
-      targetTime = selectedTime
+      targetTime = new Date(selectedTime.replace("@", ""))
     }
 
-    fetch(apiEndpoint + `/room?room=${selected.split(" - ")[0]}&time=${targetTime}`)
+    fetch(apiEndpoint + `/room?room=${selected.split(" - ")[0]}&time=${targetTime.toUTCString()}`)
     .then(response => response.json())
     .then(data => {
       if (!data.success) {
@@ -158,15 +159,18 @@ export default function RoomSearch() {
 
     if (isToday === "true") {
       const now = new Date()
-      targetTime = now.toDateString() + " @ " + now.toTimeString().split(" ")[0];
+      
+      // targetTime = now.toDateString() + " @ " + now.toTimeString().split(" ")[0];
+      targetTime = now
     } else {
-      targetTime = selectedTime
+      targetTime = new Date(selectedTime.replace("@", ""))
     }
+  
 
     let controller = new AbortController()
 
     try {
-        await fetchEventSource(apiEndpoint + `/building/stream?building=${selected.split(" - ")[0]}&time=${targetTime}`, {
+        await fetchEventSource(apiEndpoint + `/building/stream?building=${selected.split(" - ")[0]}&time=${targetTime.toUTCString()}`, {
             method: 'GET',
             headers: {},
             signal: controller.signal,
@@ -324,9 +328,11 @@ export default function RoomSearch() {
 
   if (isToday === "true") {
     const now = new Date()
-    targetTime = now.toDateString() + " @ " + now.toTimeString().split(" ")[0];
+    
+    // targetTime = now.toDateString() + " @ " + now.toTimeString().split(" ")[0];
+    targetTime = now
   } else {
-    targetTime = selectedTime
+    targetTime = new Date(selectedTime.replace("@", ""))
   }
 
   function refreshSelectedState(event) {
@@ -401,7 +407,7 @@ export default function RoomSearch() {
               {/* TODO: Add until text (free until, occupied until) */}
               <Box hidden={inputState !== 2}>
                 <Text textAlign="center"><b>{selected}</b></Text>
-                <Text mb={2} textAlign="center" color="gray.600"><b>{targetTime}</b></Text>
+                <Text mb={2} textAlign="center" color="gray.600"><b>{targetTime.toDateString() + " @ " + targetTime.toTimeString().split(" ")[0]}</b></Text>
                 {
                   searchResults?.available ? (
                     <>
@@ -486,7 +492,7 @@ export default function RoomSearch() {
             
             <Box hidden={inputState !== 2 && inputState !== 3}>
                 <Text textAlign="center"><b>{selected}</b></Text>
-                <Text mb={2} textAlign="center" color="gray.600"><b>{targetTime}</b></Text>
+                <Text mb={2} textAlign="center" color="gray.600"><b>{targetTime.toDateString() + " @ " + targetTime.toTimeString().split(" ")[0]}</b></Text>
                 <Center>
                     <Box
                       bgColor="blue.500"

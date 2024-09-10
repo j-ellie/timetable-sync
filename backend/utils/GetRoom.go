@@ -56,7 +56,8 @@ func getTodayTime() (time.Time, time.Time) {
 
 func GetRoom(targetRoom string, targetTime string) (Returnable, error){
 	fmt.Println(targetRoom, ">> Getting room status started...")
-	parseTimeFormat := "Mon Jan 02 2006 @ 15:04:05"
+	// parseTimeFormat := "Mon Jan 02 2006 @ 15:04:05" old format
+	parseTimeFormat := "Mon, 02 Jan 2006 15:04:05 MST"
 
 	var identity string
 	var categoryIdentity string
@@ -68,7 +69,7 @@ func GetRoom(targetRoom string, targetTime string) (Returnable, error){
 	if err != nil {
 		return Returnable{}, err
 	}
-
+	parsedTime = parsedTime.UTC()
 
 	jsonFile, err := os.Open("lists/rooms.json")
 	if err != nil {
@@ -114,8 +115,8 @@ func GetRoom(targetRoom string, targetTime string) (Returnable, error){
 			"DatePeriods": []map[string]interface{}{
 				{
 					"Description":   "This Week",
-					"StartDateTime": "2023-09-11T00:00:00+00:00",
-					"EndDateTime":   "2024-09-08T00:00:00+00:00",
+					"StartDateTime": "2024-09-09T00:00:00+00:00",
+					"EndDateTime":   "2024-09-16T00:00:00+00:00",
 					"IsDefault":     true,
 					"Type":          nil,
 					"Weeks":         []map[string]interface{}{},

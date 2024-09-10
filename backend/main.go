@@ -531,6 +531,38 @@ func main() {
 
 	e.GET("/stream", testStream)
 
+	// e.GET("/announcement", func (c echo.Context) error {
+	// 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	// 	defer cancel()
+	// 	userCollection := utils.GetCollections(utils.DB, "users")
+	// 	cursor, err := userCollection.Find(ctx, bson.M{})
+	// 	if err != nil {
+	// 		fmt.Println("Failed to find all documents:", err)
+	// 		return err
+	// 	}
+
+	// 	var usersToUpdate []models.User
+
+	// 	defer cursor.Close(ctx)
+	// 	for cursor.Next(ctx) {
+	// 		var result models.User
+	// 		err := cursor.Decode(&result)
+	// 		if err != nil {
+	// 			fmt.Println("Failed to decode document: ", err)
+	// 		}
+
+	// 		fmt.Println("emailing: ", result.Email)
+
+	// 		err2 := utils.SendWelcomeBack(result)
+	// 		if err2 != nil {
+	// 			fmt.Println("Error while emailing: ", err)
+	// 		}
+
+	// 		usersToUpdate = append(usersToUpdate, result)
+	// 	}
+	// 	fmt.Println("sent emails: ", len(usersToUpdate))
+	// 	return nil
+	// })
 
 	scheduler := gocron.NewScheduler(time.Local)
 	scheduler.Every(1).Day().WaitForSchedule().At("8:30").Do(utils.RunUpdate)
