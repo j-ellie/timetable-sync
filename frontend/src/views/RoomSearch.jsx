@@ -109,7 +109,7 @@ export default function RoomSearch() {
       // targetTime = now.toDateString() + " @ " + now.toTimeString().split(" ")[0];
       targetTime = now;
     } else {
-      targetTime = new Date(selectedTime.replace("@", ""))
+      targetTime = new Date(selectedTime?.replace("@", ""))
     }
 
     fetch(apiEndpoint + `/room?room=${selected.split(" - ")[0]}&time=${targetTime.toUTCString()}`)
@@ -163,7 +163,7 @@ export default function RoomSearch() {
       // targetTime = now.toDateString() + " @ " + now.toTimeString().split(" ")[0];
       targetTime = now
     } else {
-      targetTime = new Date(selectedTime.replace("@", ""))
+      targetTime = new Date(selectedTime?.replace("@", ""))
     }
   
 
@@ -332,7 +332,7 @@ export default function RoomSearch() {
     // targetTime = now.toDateString() + " @ " + now.toTimeString().split(" ")[0];
     targetTime = now
   } else {
-    targetTime = new Date(selectedTime.replace("@", ""))
+    targetTime = new Date(selectedTime?.replace("@", ""))
   }
 
   function refreshSelectedState(event) {

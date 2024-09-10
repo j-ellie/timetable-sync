@@ -23,8 +23,8 @@ function App() {
   const login = useGoogleLogin({
     onSuccess: codeResponse => {
       setLoading(true)
-      // fetch("https://api-ts.jamesz.dev/auth", {headers: {"code": codeResponse.code}, method: "POST"})
-      fetch("http://localhost:1323/auth", {headers: {"code": codeResponse.code}, method: "POST"})
+      fetch("https://api-ts.jamesz.dev/auth", {headers: {"code": codeResponse.code}, method: "POST"})
+      // fetch("http://localhost:1323/auth", {headers: {"code": codeResponse.code}, method: "POST"})
       .then(response => response.json())
       .then(data => {
         console.log("Logged In Successfully")
