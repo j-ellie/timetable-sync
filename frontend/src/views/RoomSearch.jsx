@@ -264,6 +264,7 @@ export default function RoomSearch() {
   const reset = () => {
     setInputState(0)
     setResults(null)
+    setSelected(null)
   }
 
   const dates = generateDates()
@@ -522,7 +523,6 @@ export default function RoomSearch() {
                 <Text textAlign="center" fontWeight="bold" color="gray.600" mt={1}>Rooms Available</Text>
                 <TableContainer mt={2} overflowY="scroll" height="20vh">
                 <Table variant='striped' colorScheme='teal' size="sm">
-                  <TableCaption>Showing available Rooms</TableCaption>
                   <Thead>
                     <Tr>
                       <Th>Room No.</Th>
