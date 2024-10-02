@@ -89,16 +89,25 @@ export default function RoomSearch() {
   }	
 
   const searchSpecific = () => {
+    let selectedRoom = selected;
     if (!selected) {
-      toast({
-        title: 'Please select a room from the dropdown!',
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      })
-      return
+      // the idea for this feature was given by Heather :)
+      if (availableRooms.length === 1) {
+        console.log("Auto choosing only option in search!")
+        const room = availableRooms[0];
+        roomRef.current.value = room;
+        setSelected(room);
+        selectedRoom = room;
+      } else {
+        toast({
+          title: 'Please select a room from the dropdown!',
+          status: 'error',
+          duration: 5000,
+          isClosable: true,
+        })
+        return;
+      }
     }
-    console.log(selected)
     console.warn("Searching...")
     setInputState(1)
 
@@ -112,7 +121,7 @@ export default function RoomSearch() {
       targetTime = new Date(selectedTime?.replace("@", ""))
     }
 
-    fetch(apiEndpoint + `/room?room=${selected.split(" - ")[0]}&time=${targetTime.toUTCString()}`)
+    fetch(apiEndpoint + `/room?room=${selectedRoom.split(" - ")[0]}&time=${targetTime.toUTCString()}`)
     .then(response => response.json())
     .then(data => {
       if (!data.success) {
@@ -416,7 +425,7 @@ export default function RoomSearch() {
                     </Center>
                     <Heading fontSize="xl" textAlign="center" mt={2} mb={1}>Room is Available</Heading>
                     {searchResults?.nextEvent?.description === "" ?
-                      <Text>No events booked for the remainder of today.</Text>
+                      <Text>No events booked for the remainder of day.</Text>
                       : (
                         <>
                         {/* <Text><b>Free Until:</b> {searchResults?.until}</Text> */}
@@ -446,7 +455,7 @@ export default function RoomSearch() {
 
                     <Heading fontSize="lg" textAlign="center" mt={2} mb={1}>Next Event</Heading>
                     {searchResults?.nextEvent?.description === "" ?
-                      <Text>No events booked for the remainder of today.</Text>
+                      <Text>No events booked for the remainder of day.</Text>
                       : (
                         <>
                         <Text><b>Begins:</b> {convertToFriendly(searchResults?.nextEvent?.began)}</Text>
@@ -511,8 +520,7 @@ export default function RoomSearch() {
                     </Box>
                 </Center>
                 <Text textAlign="center" fontWeight="bold" color="gray.600" mt={1}>Rooms Available</Text>
-                {/* TODO maybe put this info into a striped table */}
-                <TableContainer mt={2}>
+                <TableContainer mt={2} overflowY="scroll" height="20vh">
                 <Table variant='striped' colorScheme='teal' size="sm">
                   <TableCaption>Showing available Rooms</TableCaption>
                   <Thead>
@@ -527,7 +535,7 @@ export default function RoomSearch() {
                       searchResults?.map(res => {
                         let nextEv;
                         if (new Date(res.nextEvent?.began).getFullYear() === 0) {
-                          nextEv = "No events for the remainder of today."
+                          nextEv = "No events for the remainder of day."
                         } else {
                           nextEv = convertToFriendly(res.nextEvent?.began)
                         }
