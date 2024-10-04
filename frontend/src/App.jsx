@@ -11,11 +11,15 @@ import RoomSearch from './views/RoomSearch';
 import { FcGoogle } from "react-icons/fc";
 import Footer from './components/Footer';
 import GoogleSignin from './components/GoogleSignin';
+import Viewer from './views/Viewer'
 
 function App() {
+  // const apiUrl = "http://localhost:1323"
+  const apiUrl = "https://api-ts.jamesz.dev"
   const [signedIn, setSignIn] = useState(false);
   const [isLoading, setLoading] = useState(false);
   const [showPrivacy, setPrivacy] = useState(false);
+  const [showViewer, setViewer] = useState(false);
   const [showRooms, setRooms] = useState(false);
   const [isError, setError] = useState(null);
   const [data, setData] = useState(null);
@@ -31,7 +35,7 @@ function App() {
         setData(data.data)
         setSignIn(true)
         setLoading(false)
-        console.log(data)
+        // console.log(data)
       })
       .catch(error => {
         setError(error.toString())
@@ -54,6 +58,8 @@ function App() {
       setPrivacy(true)
     } else if (window.location.pathname === "/room-checker") {
       setRooms(true)
+    } else if (window.location.pathname === "/viewer") {
+      setViewer(true)
     }
   }, [])
  
@@ -63,6 +69,13 @@ function App() {
       {
         showPrivacy ? (
           <Privacy />   
+        ) : null 
+      }
+      {
+        showViewer ? (
+          <Center height={["auto", "100vh"]}>
+            <Viewer apiUrl={apiUrl} />
+          </Center>
         ) : null 
       }
       {
@@ -104,7 +117,7 @@ function App() {
       }
 
       {
-        !isLoading && !signedIn && isError == null && !showPrivacy && !showRooms ? (
+        !isLoading && !signedIn && isError == null && !showPrivacy && !showRooms && !showViewer ? (
           <>
           <Alert status='success'>
             <AlertIcon />

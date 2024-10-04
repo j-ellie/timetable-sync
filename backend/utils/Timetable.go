@@ -43,19 +43,27 @@ func getTime() (time.Time, time.Time) {
 }
 
 // function returns timetable from given course code from current time to next 2 weeks
-func getTimetable(courseCode string, ignoredEvents []string) []Timetable {
+func GetTimetable(code string, module bool, ignoredEvents []string, ignoreOccurredEvents bool, from time.Time, to time.Time) []Timetable {
 	var returnedTimetable []Timetable
+	var courseId string
+	var categoryId string
+	var conversionError error
 
-	courseId, categoryId, cErr := GetCourseId(courseCode)
-	if cErr != nil {
-		fmt.Println("Failed to convert course code: ", cErr)
+	if module {
+		courseId, categoryId, conversionError = GetModuleId(code)
+
+	} else {
+		courseId, categoryId, conversionError = GetCourseId(code)
+	}
+	
+	if conversionError != nil {
+		fmt.Println("Failed to convert code: ", conversionError)
 		return nil
 	}
-
-	currentTime, twoWeeks := getTime()
+	// currentTime, twoWeeks := getTime()
 	timeFormat := "2006-01-02"
 
-	url := os.Getenv("DCU_TIMETABLE_BASE") + "?startRange="+ currentTime.Format(timeFormat) + "&endRange=" + twoWeeks.Format(timeFormat)
+	url := os.Getenv("DCU_TIMETABLE_BASE") + "?startRange="+ from.Format(timeFormat) + "&endRange=" + to.Format(timeFormat)
 
 	// request body conversion from Node.JS to Go with aid of ChatGPT V3.5
 	requestBody := map[string]interface{}{
@@ -213,9 +221,9 @@ func getTimetable(courseCode string, ignoredEvents []string) []Timetable {
 			EndDateTime:   endTime,
 		}
 		
-		if entry.StartDateTime.Before(time.Now()) {
+		if ignoreOccurredEvents && entry.StartDateTime.Before(time.Now()) {
 			continue
-		} else if contains(ignoredEvents, name) == true {
+		} else if contains(ignoredEvents, name) {
 			continue 
 		} else {
 			returnedTimetable = append(returnedTimetable, entry)
@@ -338,7 +346,8 @@ func SyncTimetable(config oauth2.Config, accessToken string, refreshToken string
 		fmt.Printf("Unable to create Calendar API service: %v", err)
 		return err
 	}
-	timetable := getTimetable(courseCode, ignoredEvents)
+	currentTime, twoWeeks := getTime()
+	timetable := GetTimetable(courseCode, false, ignoredEvents, true, currentTime, twoWeeks)
 
 	calendarID := "primary"
 	clearErr := clearTimetable(srv, calendarID)

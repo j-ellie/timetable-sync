@@ -75,7 +75,7 @@ export default function Admin({ isOpen, onClose, apiEndpoint, userToken, userEma
             <Box backgroundColor="gray.300" w="fit-content" p={5} pl={8} pr={8} borderRadius="1em">
               <Stat>
                 <StatLabel>Global Sync Enabled</StatLabel>
-                <StatNumber>{adminInfo?.daily_sync ? "endabled" : "disabled"}</StatNumber>
+                <StatNumber>{adminInfo?.daily_sync ? "enabled" : "disabled"}</StatNumber>
               </Stat>
             </Box>
           </Box>

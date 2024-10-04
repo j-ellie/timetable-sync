@@ -1,3 +1,8 @@
+:root {
+    --fc-today-bg-color: rgb(114, 78, 149, 0.15);
+    --fc-now-indicator-color: orange;
+}
+
 html {
     scroll-behavior: smooth;
 }
@@ -104,4 +109,18 @@ html {
     background-color: #303030;
     opacity: 8%;
 }
-  
+
+.fc-header-toolbar, fc-toolbar {
+    @media (max-width: 700px){
+        display: flex;
+        flex-direction: column;
+    }
+}
+
+.fc-timegrid-now-indicator-line {
+    border-width: 1.5px 0px 0px !important;
+}
+
+.fc-event {
+    cursor: pointer;
+}
