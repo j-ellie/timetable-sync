@@ -29,7 +29,6 @@ export default function Viewer({ apiUrl }) {
   const toast = useToast();
 
   const [initialLoad, setInitialLoad] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [embedMode, setEmbedMode] = useState(false);
 
   const [courseOptions, setCourseOptions] = useState([])
@@ -215,8 +214,10 @@ export default function Viewer({ apiUrl }) {
       if (embedMode) {
         setEmbedMode(true);
       }
-
       setInitialLoad(true);
+      setTimeout(() => {
+        document.getElementById("loadingSpinner").hidden = true;
+      },1000)
     } else {
       if (selectedCourses.length === 0) {
         curr.searchParams.delete("course")

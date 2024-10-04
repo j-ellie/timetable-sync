@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import './App.css'
-import { Center, Text, Image, Button, Heading, VStack, Icon, OrderedList, UnorderedList, ListItem, Link, Alert, AlertTitle, AlertDescription, AlertIcon, Flex } from '@chakra-ui/react'
+import { Center, Text, Image, Button, Heading, VStack, Badge, OrderedList, UnorderedList, ListItem, Link, Alert, AlertTitle, AlertDescription, AlertIcon, Flex } from '@chakra-ui/react'
 import { ChevronDownIcon } from '@chakra-ui/icons'
 import { GoogleLogin, useGoogleLogin } from '@react-oauth/google'
 import SignedIn from './views/SignedIn';
@@ -119,11 +119,11 @@ function App() {
       {
         !isLoading && !signedIn && isError == null && !showPrivacy && !showRooms && !showViewer ? (
           <>
-          <Alert status='success'>
+          {/* <Alert status='success'>
             <AlertIcon />
             <AlertTitle>Welcome Back!</AlertTitle>
             <AlertDescription>Timetable Sync is ready to sync your timetable!</AlertDescription>
-          </Alert>
+          </Alert> */}
             <Center height="100vh">
             <VStack m={2}>
               <Heading>Timetable Sync</Heading>
@@ -134,9 +134,25 @@ function App() {
               {/* <Button colorScheme="gray" onClick={() => { login() }} isDisabled={false}>
                 <Icon as={FcGoogle} fontSize="3xl" mr={3} bgColor="white" p={1} borderRadius="50px" /> Sign in with Google
               </Button> */}
-              <Button colorScheme="orange" onClick={() => { window.location.href = "/room-checker" }}>
-                Room Checker
-              </Button>
+              <Flex gap={2}>
+                <Button colorScheme="orange" onClick={() => {                  
+                  setRooms(true);
+                  const curr = new URL(window.location.href)
+                  curr.pathname = "/room-checker"
+                  window.history.replaceState({}, '', curr) }}>
+                  Room Checker
+                </Button>
+                <Button colorScheme="purple" onClick={() => { 
+                  setViewer(true);
+                  const curr = new URL(window.location.href)
+                  curr.pathname = "/viewer"
+                  window.history.replaceState({}, '', curr)
+
+                 }} borderWidth="2px" borderColor="gold">
+                  Viewer
+                  <Badge colorScheme='green' ml={2}>New</Badge>
+                </Button>
+              </Flex>
 
               <Link colorScheme="orange" href='#info'>
                 <ChevronDownIcon fontSize="3xl" mt={2} />
