@@ -63,7 +63,7 @@ func main() {
 	})
 
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{"http://127.0.0.1:5173", "http://localhost:5173", "https://ts.jamesz.dev", "https://ts.elliee.me"},
+		AllowOrigins: []string{"http://127.0.0.1:5173", "http://localhost:5173", "https://ts.jamesz.dev", "https://ts.elliee.me", "https://timetable-sync-orangebeatle123-orangebeatle123s-projects.vercel.app"},
 		AllowMethods: []string{http.MethodGet, http.MethodPost, http.MethodDelete},
 		AllowHeaders: []string{"*", "Authorization"},
 	}))
@@ -413,6 +413,30 @@ func main() {
 		return c.JSON(http.StatusOK, response)
 	})
 
+	e.GET("options", func(c echo.Context) error {
+		modId, err := utils.GetModules()
+		courseId, err2 := utils.GetAllCodes()
+
+		var response struct {
+			Success     bool   `json:"success"`
+			Message     string `json:"message"omitempty`
+			CourseIds     	[]string `json:"course_ids"omitempty`
+			ModuleIds     	[]string `json:"module_ids"omitempty`
+		}
+
+		if err != nil || err2 != nil {
+			response.Success = true
+			response.Message = "Failed to get modules and courses. Error: " + err.Error()
+			return c.JSON(http.StatusInternalServerError, response)
+		}		
+
+		response.CourseIds = courseId
+		response.ModuleIds = modId
+		response.Success = true
+
+		return c.JSON(http.StatusOK, response)
+	})
+
 	e.DELETE("/delete", func(c echo.Context) error {
 		auth := c.Request().Header.Get("Authorization")
 
@@ -527,6 +551,43 @@ func main() {
 		utils.StreamGetFreeRoomsInBuilding(c, building, targetTime)
 
 		return nil
+	})
+
+	e.GET("/timetable", func (c echo.Context) error {
+		var response struct {
+			Success bool `json:"success"`
+			Message string `json:"message"`
+			Events []utils.Timetable `json:"events"omitempty`
+		}
+
+		courseCode := c.Request().URL.Query().Get("course")
+		moduleCode := c.Request().URL.Query().Get("module")
+		from := c.Request().URL.Query().Get("from")
+		to := c.Request().URL.Query().Get("to")
+
+		isModule := courseCode == "" && moduleCode != ""
+		if isModule {
+			// quick fix here to avoid having to rewrite GetTimetable call
+			courseCode = moduleCode
+		}
+
+		timeFormat := "Mon, 02 Jan 2006 15:04:05 GMT"
+
+		fromTime, tErr1 := time.Parse(timeFormat, from)
+		toTime, tErr2 := time.Parse(timeFormat, to)
+
+		if tErr1 != nil || tErr2 != nil {
+			response.Success = false
+			response.Message = "Error parsing time."
+			return c.JSON(http.StatusInternalServerError, response)
+		}
+
+		timetable := utils.GetTimetable(courseCode, isModule, nil, false, fromTime, toTime)
+		response.Events = timetable
+
+		response.Success = true
+		response.Message = fmt.Sprintf("Fetched %d events", len(timetable))
+		return c.JSON(http.StatusOK, response)
 	})
 
 	e.GET("/stream", testStream)
