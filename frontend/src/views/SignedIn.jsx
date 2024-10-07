@@ -1,4 +1,4 @@
-import { Box, Text, Heading, Select, FormLabel, Switch, FormControl, Tooltip, Button, Link, Input, Avatar, Center, useToast, InputGroup, InputRightElement, HStack, useDisclosure } from '@chakra-ui/react'
+import { Box, Text, Heading, Select, FormLabel, Switch, FormControl, Tooltip, Button, Link, Input, Avatar, Center, useToast, InputGroup, InputRightElement, HStack, useDisclosure, useColorMode } from '@chakra-ui/react'
 import React, { useState, useEffect, useRef } from 'react'
 import { QuestionIcon } from "@chakra-ui/icons"
 import { googleLogout } from '@react-oauth/google'
@@ -218,8 +218,10 @@ export default function LoggingIn({ setSignIn, data }) {
     ]
   }
 
+  const {colorMode} = useColorMode();
+
   return (
-    <Box bgColor="gray.200" borderRadius="2em" width="30em" height="em" p={3} pb={5} maxHeight="95vh">
+    <Box bgColor={colorMode == "light" ? "gray.200" : "gray.700"} borderRadius="2em" width="30em" height="em" p={3} pb={5} maxHeight="95vh">
         <Center>
           <Avatar mt={4} size="lg" name={formData.name} src={formData.user_picture} />
         </Center>
@@ -227,7 +229,7 @@ export default function LoggingIn({ setSignIn, data }) {
         <Text mt={1} fontSize="small" textAlign="center">Not you? <span style={{ textDecoration: "underline", cursor: "pointer" }} onClick={() => logout()}>Logout</span></Text>
 
         <Text>Select your course...</Text>
-        <Select mt={2} placeholder='Select Course' bgColor="gray.100" value={formData.course_code === "" ? "Select Course" : formData.course_code} onChange={handleCourseChange}>
+        <Select mt={2} placeholder='Select Course' bgColor={colorMode == "light" ? "gray.100" : "gray.800"} value={formData.course_code === "" ? "Select Course" : formData.course_code} onChange={handleCourseChange}>
             {availableCourses.map((course) => (
                 <option key={course} value={course}>{course}</option>
             ))}
@@ -235,7 +237,7 @@ export default function LoggingIn({ setSignIn, data }) {
         <Text mt={1} fontSize="x-small">Course not listed? Email: <Link href="mailto:james@jamesz.dev">james@jamesz.dev</Link></Text>
 
         <Text mt={2}>Update Frequency:</Text>
-        <Select mt={2} placeholder='Select Frequency' bgColor="gray.100" value={formData.sync_time === "" ? "Select Frequency" : formData.sync_time} onChange={handleFreqChange}>
+        <Select mt={2} placeholder='Select Frequency' bgColor={colorMode == "light" ? "gray.100" : "gray.800"} value={formData.sync_time === "" ? "Select Frequency" : formData.sync_time} onChange={handleFreqChange}>
           <option value="daily">Daily (8:30 am)</option>
           <option value="once">Only this one time</option>
 
@@ -253,7 +255,7 @@ export default function LoggingIn({ setSignIn, data }) {
 
         <Text mt={2}>Preferred Name</Text>
         <FormControl display='flex' alignItems='center' mt={1} mb={4}>
-        <Input id="preferredName" defaultValue={data.data.name} bgColor="gray.100" mr={1} onChange={handleNameChange} />
+        <Input id="preferredName" defaultValue={data.data.name} bgColor={colorMode == "light" ? "gray.100" : "gray.800"} mr={1} onChange={handleNameChange} />
         <Tooltip label="If you'd like to use a different name to what is on your DCU email then you can put it here :)" fontSize='md'>
           <QuestionIcon />
         </Tooltip>
@@ -269,7 +271,7 @@ export default function LoggingIn({ setSignIn, data }) {
               </Button>
             </InputRightElement>
 
-          <Input id="ignoredEvents" bgColor="gray.100" mr={1} ref={ignoreInput} onChange={checkIfDelete} placeholder="MS134[1]OC/T1/04 GrpA"/>
+          <Input id="ignoredEvents" bgColor={colorMode == "light" ? "gray.100" : "gray.800"} mr={1} ref={ignoreInput} onChange={checkIfDelete} placeholder="MS134[1]OC/T1/04 GrpA"/>
         </InputGroup>
 
         <Tooltip label="If you would like to exclude certain events from your timetable (e.g Tutorial Groups that are not yours), then add the name here." fontSize='md'>
