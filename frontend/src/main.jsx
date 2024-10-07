@@ -2,11 +2,13 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './index.css'
-import { ChakraProvider, extendTheme } from '@chakra-ui/react'
+import { ChakraProvider, extendTheme, ColorModeScript } from '@chakra-ui/react'
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { MultiSelectTheme } from 'chakra-multiselect'
 
 const theme = extendTheme({
+  initialColorMode: "light",
+  useSystemColorMode: true,
   components: {
     MultiSelect: MultiSelectTheme
   }
@@ -21,6 +23,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           <AlertTitle>Happy New Year!</AlertTitle>
           <AlertDescription>Welcome back! We are ready to sync your Semester 2 timetable! Just log in below. ALSO! Check out our new <a href="/room-checker" style={{ textDecoration: "underline", fontWeight: "bold"}}>Room Availability Checker</a></AlertDescription>
         </Alert> */}
+        <ColorModeScript initialColorMode={theme.config.initialColorMode} />
         <App />
       </GoogleOAuthProvider>
     </ChakraProvider>

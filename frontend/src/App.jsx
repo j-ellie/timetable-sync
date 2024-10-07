@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import './App.css'
-import { Center, Text, Image, Button, Heading, VStack, Badge, OrderedList, UnorderedList, ListItem, Link, Alert, AlertTitle, AlertDescription, AlertIcon, Flex } from '@chakra-ui/react'
+import { Center, Text, Image, Button, Heading, VStack, Badge, OrderedList, UnorderedList, ListItem, Link, Alert, AlertTitle, AlertDescription, AlertIcon, Flex, useColorMode } from '@chakra-ui/react'
 import { ChevronDownIcon } from '@chakra-ui/icons'
 import { GoogleLogin, useGoogleLogin } from '@react-oauth/google'
 import SignedIn from './views/SignedIn';
@@ -8,10 +8,11 @@ import LoggingIn from './views/LoggingIn';
 import Error from './views/Error';
 import Privacy from './views/Privacy';
 import RoomSearch from './views/RoomSearch';
-import { FcGoogle } from "react-icons/fc";
 import Footer from './components/Footer';
 import GoogleSignin from './components/GoogleSignin';
 import Viewer from './views/Viewer'
+import ColorModeSwitch from './components/ColorModeSwitch';
+
 
 function App() {
   // const apiUrl = "http://localhost:1323"
@@ -62,10 +63,13 @@ function App() {
       setViewer(true)
     }
   }, [])
+
+  const {colorMode} = useColorMode();
  
   return (
     <>
       <div className="wrapper">
+        <ColorModeSwitch />
       {
         showPrivacy ? (
           <Privacy />   
@@ -150,7 +154,7 @@ function App() {
 
                  }} borderWidth="2px" borderColor="gold">
                   Viewer
-                  <Badge colorScheme='green' ml={2}>New</Badge>
+                  <Badge colorScheme={colorMode === "light" ? 'green' : ""} ml={2}>New</Badge>
                 </Button>
               </Flex>
 

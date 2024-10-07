@@ -21,6 +21,7 @@ import calculateSemWeek from '../utils/weekNos'
 import { toPng } from "html-to-image"
 import EventPopover from '../components/EventPopover'
 import EmbedModal from '../components/EmbedModal'
+import { FaHome } from 'react-icons/fa'
 
 export default function Viewer({ apiUrl }) {
   const { isOpen, onOpen, onClose } = useDisclosure()
@@ -381,6 +382,9 @@ export default function Viewer({ apiUrl }) {
 
   return (
     <Box width="90vw" height="100vh" mt={5}>
+      <Button ref={btnRef} colorScheme='cyan' onClick={() => {window.location.href = "/"}} hidden={embedMode} mr={2} mb={1}>
+        <FaHome />
+      </Button>
       <Button ref={btnRef} colorScheme='orange' onClick={onOpen} hidden={embedMode} mr={2} mb={1}>
         Edit Selection
       </Button>

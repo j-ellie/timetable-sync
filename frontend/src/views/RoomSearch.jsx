@@ -25,7 +25,8 @@ import {
   Td,
   TableCaption,
   TableContainer,
-  Input, } from '@chakra-ui/react'
+  Input,
+  useColorMode, } from '@chakra-ui/react'
 import React, { useState, useEffect, useRef } from 'react'
 import { ArrowLeftIcon, SearchIcon } from "@chakra-ui/icons"
 import { FaCheckCircle } from "react-icons/fa";
@@ -376,8 +377,10 @@ export default function RoomSearch() {
 
   }
 
+  const {colorMode} = useColorMode();
+
   return (
-    <Box bgColor="gray.200" borderRadius="2em" width="30em" overflow="auto" p={3} pb={5} mt={10}>
+    <Box bgColor={colorMode == "light" ? "gray.200" : "gray.700"} borderRadius="2em" width="30em" overflow="auto" p={3} pb={5} mt={10}>
       <Heading textAlign="center" fontSize="3xl">DCU Room Availability Checker</Heading>
 
       <Tabs onChange={refreshSelectedState}>
