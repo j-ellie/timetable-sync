@@ -26,7 +26,7 @@ func main() {
 		// log.Println(page)
 		room := getRoomPage(page)
 		for _, c := range room {
-			rooms = append(rooms, c)
+			rooms = append([]Room{c}, rooms...)
 		}
 	}
 	for _, c := range rooms {
