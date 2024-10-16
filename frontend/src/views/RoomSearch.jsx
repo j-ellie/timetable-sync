@@ -26,10 +26,12 @@ import {
   TableCaption,
   TableContainer,
   Input,
-  useColorMode, } from '@chakra-ui/react'
+  useColorMode,
+  HStack,
+  Checkbox, } from '@chakra-ui/react'
 import React, { useState, useEffect, useRef } from 'react'
 import { ArrowLeftIcon, SearchIcon } from "@chakra-ui/icons"
-import { FaCheckCircle } from "react-icons/fa";
+import { FaCheckCircle, FaHome } from "react-icons/fa";
 import { FaCircleXmark } from "react-icons/fa6";
 
 import { fetchEventSource } from "@microsoft/fetch-event-source"
@@ -40,6 +42,9 @@ export default function RoomSearch() {
   const apiEndpoint = "https://api-ts.jamesz.dev";
   // const apiEndpoint = "http://localhost:1323";
   const toast = useToast()
+
+  const [roomMap, setRoomMap] = useState({});
+  const [showRoomTypes, setShowRoomTypes] = useState(false);
 
   const [allRooms, setAllRooms] = useState([])
 
@@ -87,7 +92,23 @@ export default function RoomSearch() {
 
   const selectTime = (e) => {
     setTime(e.target.value)
-  }	
+  }
+
+  const generateRoomMap = (rooms) => {
+    if (roomMap.length === 0) return;
+    const newRoomMap = {};
+
+    rooms.forEach(room => {
+        const [id, description] = room.split(" - ");  // Split room ID and description
+        newRoomMap[id] = description;
+    });
+    
+    return newRoomMap;
+  }
+  
+  const getRoomDescription = (target) => {
+    return roomMap[target] || "No Description";
+  }
 
   const searchSpecific = () => {
     let selectedRoom = selected;
@@ -265,7 +286,7 @@ export default function RoomSearch() {
   const reset = () => {
     setInputState(0)
     setResults(null)
-    setSelected(null)
+    // setSelected(null)
   }
 
   const dates = generateDates()
@@ -292,8 +313,12 @@ export default function RoomSearch() {
         return;
       } else {
         setRooms([])
-        setRooms(data.ids)
-        setAllRooms(data.ids)
+        // to prevent order from looking weird
+        const reversedRooms = [...data.ids].reverse()
+        setRooms(reversedRooms)
+        setAllRooms(reversedRooms)
+        const map = generateRoomMap(reversedRooms)
+        setRoomMap(map);
       }
     })
     .catch(err => {
@@ -356,6 +381,7 @@ export default function RoomSearch() {
   }
 
   const filterRoomSelect = (e) => {
+    setSelected(null);
     const value = e.target.value;
 
     let newFilter = [];
@@ -472,7 +498,7 @@ export default function RoomSearch() {
                     </>
                   )
                 }
-              <Button colorScheme='purple' size="sm" w="100%" mt={4} onClick={reset}><SearchIcon mr={2} /> Search Again</Button>
+              {/* <Button colorScheme='purple' size="sm" w="100%" mt={4} onClick={reset}><SearchIcon mr={2} /> Search Again</Button> */}
             </Box>
           </TabPanel>
           <TabPanel>
@@ -494,6 +520,7 @@ export default function RoomSearch() {
                     <option value={date} key={date}>{date}</option>
                   ))}
               </Select>
+              <Checkbox mt={1} onChange={(e) => {setShowRoomTypes(e.target.checked)}}>Show Room Types</Checkbox>
               <Button colorScheme='green' w="100%" mt={4} onClick={searchBuilding}><SearchIcon mr={2} /> Search</Button>
             </Box>
             <Stack direction="column" hidden={inputState !== 1 && inputState !== 3}>
@@ -524,12 +551,18 @@ export default function RoomSearch() {
                     </Box>
                 </Center>
                 <Text textAlign="center" fontWeight="bold" color="gray.600" mt={1}>Rooms Available</Text>
-                <TableContainer mt={2} overflowY="scroll" height="20vh">
+                <TableContainer mt={2} overflowY="scroll" height="30vh">
                 <Table variant='striped' colorScheme='teal' size="sm">
                   <Thead>
                     <Tr>
                       <Th>Room No.</Th>
                       <Th>Next Event</Th>
+                      {
+                        showRoomTypes ?
+                        (
+                          <Th>Room Type</Th>
+                        ) : null
+                      }
                     </Tr>
                   </Thead>
                   <Tbody>
@@ -547,6 +580,12 @@ export default function RoomSearch() {
                           <Tr key={res.id}>
                             <Td>{res.id}</Td>
                             <Td>{nextEv}</Td>
+                            {
+                              showRoomTypes ?
+                              (
+                                <Td>{getRoomDescription(res.id)}</Td>
+                              ) : null
+                            }
                           </Tr>
                         )
                       }
@@ -556,13 +595,16 @@ export default function RoomSearch() {
                   </Tbody>
                 </Table>
               </TableContainer>
-              <Button colorScheme='purple' size="sm" w="100%" mt={4} onClick={reset} isDisabled={inputState === 3}><SearchIcon mr={2}/> Search Again</Button>
             </Box>
           </TabPanel>
         </TabPanels>
       </Tabs>
+
+      <HStack>
+        <Button colorScheme='teal' w="100%" onClick={backHome}><Icon as={FaHome} mr={2} /> Home</Button>
+        <Button colorScheme='purple' w="100%" onClick={reset} isDisabled={inputState === 3} hidden={inputState !== 2 && inputState !== 3}><SearchIcon mr={2}/> Search Again</Button>
+      </HStack>
        
-      <Button colorScheme='teal' w="100%" mt={4} onClick={backHome}><ArrowLeftIcon mr={4} /> Back Home</Button>
     </Box>
   )
 }

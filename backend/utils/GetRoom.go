@@ -236,7 +236,7 @@ func GetRoom(targetRoom string, targetTime string) (Returnable, error){
 			Began: startTime,
 			Ends: endTime,
 			EventName: eventName,
-			Module: moduleName,
+			Module: moduleName
 		}
 
 		rawResults = append(rawResults, newEvent)
@@ -360,13 +360,9 @@ func StreamGetFreeRoomsInBuilding(c echo.Context, buildingName string, targetTim
 				c.Response().Write([]byte("data:"))
 				c.Response().Write([]byte(data))
 				c.Response().Write([]byte("\n\n"))
-				// if err != nil {
-				// 	return nil, err
-				// }
 				c.Response().Flush()
 			}
 		}
-		// ids = append(ids, room.ID + " - " + room.FriendlyName)
 	}
 
 	c.Response().Write([]byte("event: end\n"))
