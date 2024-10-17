@@ -19,19 +19,21 @@ import {
   Table,
   Thead,
   Tbody,
-  Tfoot,
   Tr,
   Th,
   Td,
-  TableCaption,
   TableContainer,
   Input,
   useColorMode,
   HStack,
+  Tag,
+  TagLabel,
+  TagLeftIcon,
+  Tooltip,
   Checkbox, } from '@chakra-ui/react'
 import React, { useState, useEffect, useRef } from 'react'
 import { ArrowLeftIcon, SearchIcon } from "@chakra-ui/icons"
-import { FaCheckCircle, FaHome } from "react-icons/fa";
+import { FaCheckCircle, FaHome, FaStar } from "react-icons/fa";
 import { FaCircleXmark } from "react-icons/fa6";
 
 import { fetchEventSource } from "@microsoft/fetch-event-source"
@@ -139,6 +141,11 @@ export default function RoomSearch() {
       const now = new Date()
       // targetTime = now.toDateString() + " @ " + now.toTimeString().split(" ")[0];
       targetTime = now;
+    } else if (isToday === "next") {
+      const currentTime = new Date();
+      const nextHour = new Date(currentTime);
+      nextHour.setHours(currentTime.getHours() + 1);
+      targetTime = nextHour;
     } else {
       targetTime = new Date(selectedTime?.replace("@", ""))
     }
@@ -193,6 +200,11 @@ export default function RoomSearch() {
       
       // targetTime = now.toDateString() + " @ " + now.toTimeString().split(" ")[0];
       targetTime = now
+    } else if (isToday === "next") {
+      const currentTime = new Date();
+      const nextHour = new Date(currentTime);
+      nextHour.setHours(currentTime.getHours() + 1);
+      targetTime = nextHour;
     } else {
       targetTime = new Date(selectedTime?.replace("@", ""))
     }
@@ -296,6 +308,8 @@ export default function RoomSearch() {
   const [selected, setSelected] = useState(null)
   const [selectedTime, setTime] = useState(null)
 
+  const [favourites, setFavourites] = useState([]);
+
   useEffect(() => {
     if (availableRooms.length !== 0) return;
     console.log(">> Fetching Rooms...")
@@ -319,6 +333,8 @@ export default function RoomSearch() {
         setAllRooms(reversedRooms)
         const map = generateRoomMap(reversedRooms)
         setRoomMap(map);
+        // load favorite rooms from cache
+        loadFavourites();
       }
     })
     .catch(err => {
@@ -367,6 +383,11 @@ export default function RoomSearch() {
     
     // targetTime = now.toDateString() + " @ " + now.toTimeString().split(" ")[0];
     targetTime = now
+  } else if (isToday === "next") {
+    const currentTime = new Date();
+    const nextHour = new Date(currentTime);
+    nextHour.setHours(currentTime.getHours() + 1);
+    targetTime = nextHour;
   } else {
     targetTime = new Date(selectedTime?.replace("@", ""))
   }
@@ -403,6 +424,47 @@ export default function RoomSearch() {
 
   }
 
+  // favourites system
+
+  const loadFavourites = () => {
+    const localFavourites = localStorage.getItem("rcFavourites");
+
+    setFavourites(JSON.parse(localFavourites))
+  }
+
+  const favouriteRoom = () => {
+    const curr = selected.split(" - ")[0];
+    let updatedFavourites;
+    if (!favourites.includes(curr)) {
+      if (favourites.length > 4) {
+        toast({
+          title: 'Max Favourites Reached',
+          description: "You've reached the maximum number of 4 favourites :(",
+          status: 'warning',
+          duration: 2000,
+          isClosable: true,
+          position: "top"
+        })
+        return;
+      }
+      updatedFavourites = [...favourites, curr];
+      setFavourites(updatedFavourites);
+    } else {
+      updatedFavourites = favourites.filter(f => f != curr);
+      setFavourites(updatedFavourites);
+    }
+    localStorage.setItem("rcFavourites", JSON.stringify(updatedFavourites));
+  }
+
+  const handleFavouriteClick = (e) => {
+    const roomId = e.target.childNodes[0].data;
+
+    const description = getRoomDescription(roomId)
+    const fullName = `${roomId} - ${description}`
+    roomRef.current.value = fullName;
+    setSelected(fullName)
+  }
+
   const {colorMode} = useColorMode();
 
   return (
@@ -424,13 +486,24 @@ export default function RoomSearch() {
                     <option value={r} key={r}>{r}</option>
                   ))}
                 </Select>
+                <HStack spacing={2} mt={1}>
+                  {favourites.map((fav) => (
+                    <Tooltip key={fav} label={fav}>
+                      <Tag variant='subtle' colorScheme='gray' cursor="pointer" onClick={handleFavouriteClick}>
+                        <TagLeftIcon boxSize='12px' as={FaStar} />
+                        <TagLabel>{fav}</TagLabel>
+                      </Tag>
+                    </Tooltip>
+                  ))}
+                </HStack>
                 <RadioGroup onChange={setToday} value={isToday} mt={2}>
                   <Stack>
                     <Radio value="true" colorScheme='blue'>Right Now</Radio>
+                    <Radio value="next" colorScheme='blue'>Next Hour</Radio>
                     <Radio value="false" colorScheme='blue'>Custom Date & Time</Radio>
                   </Stack>
                 </RadioGroup>
-                <Select variant="filled" placeholder='Select Timeframe' cursor="pointer" mt={2} size="sm" isDisabled={isToday === "true"} onChange={selectTime}>
+                <Select variant="filled" placeholder='Select Timeframe' cursor="pointer" mt={2} size="sm" isDisabled={isToday !== "true"} onChange={selectTime}>
                   {dates.map(date => (
                       <option value={date} key={date}>{date}</option>
                     ))}
@@ -455,7 +528,7 @@ export default function RoomSearch() {
                     </Center>
                     <Heading fontSize="xl" textAlign="center" mt={2} mb={1}>Room is Available</Heading>
                     {searchResults?.nextEvent?.description === "" ?
-                      <Text>No events booked for the remainder of day.</Text>
+                      <Text textAlign="center">No events booked for the remainder of day.</Text>
                       : (
                         <>
                         {/* <Text><b>Free Until:</b> {searchResults?.until}</Text> */}
@@ -485,7 +558,7 @@ export default function RoomSearch() {
 
                     <Heading fontSize="lg" textAlign="center" mt={2} mb={1}>Next Event</Heading>
                     {searchResults?.nextEvent?.description === "" ?
-                      <Text>No events booked for the remainder of day.</Text>
+                      <Text textAlign="center">No events booked for the remainder of day.</Text>
                       : (
                         <>
                         <Text><b>Begins:</b> {convertToFriendly(searchResults?.nextEvent?.began)}</Text>
@@ -512,10 +585,11 @@ export default function RoomSearch() {
               <RadioGroup onChange={setToday} value={isToday} mt={2}>
                 <Stack>
                   <Radio value="true" colorScheme='blue'>Right Now</Radio>
+                  <Radio value="next" colorScheme='blue'>Next Hour</Radio>
                   <Radio value="false" colorScheme='blue'>Custom Date & Time</Radio>
                 </Stack>
               </RadioGroup>
-              <Select variant="filled" placeholder='Select Timeframe' cursor="pointer" mt={2} size="sm" isDisabled={isToday === "true"} onChange={selectTime} >
+              <Select variant="filled" placeholder='Select Timeframe' cursor="pointer" mt={2} size="sm" isDisabled={isToday !== "false"} onChange={selectTime} >
                 {dates.map(date => (
                     <option value={date} key={date}>{date}</option>
                   ))}
@@ -603,6 +677,9 @@ export default function RoomSearch() {
       <HStack>
         <Button colorScheme='teal' w="100%" onClick={backHome}><Icon as={FaHome} mr={2} /> Home</Button>
         <Button colorScheme='purple' w="100%" onClick={reset} isDisabled={inputState === 3} hidden={inputState !== 2 && inputState !== 3}><SearchIcon mr={2}/> Search Again</Button>
+        <Tooltip label={favourites.includes(selected?.split(" - ")[0]) ? 'Remove from favourites' : 'Add to favourites'}>
+          <Button colorScheme={favourites.includes(selected?.split(" - ")[0]) ? 'yellow' : 'gray'} w="20%" onClick={favouriteRoom} isDisabled={inputState === 3} hidden={inputState !== 2 && inputState !== 3}><FaStar /></Button>
+        </Tooltip>
       </HStack>
        
     </Box>
