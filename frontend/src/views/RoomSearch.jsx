@@ -60,6 +60,7 @@ export default function RoomSearch() {
 
   const roomRef = useRef(null)
   const buildingRef = useRef(null)
+  const filterRoomInput = useRef(null)
 
 
   const [isToday, setToday] = useState("true");
@@ -429,14 +430,16 @@ export default function RoomSearch() {
   const loadFavourites = () => {
     const localFavourites = localStorage.getItem("rcFavourites");
 
-    setFavourites(JSON.parse(localFavourites))
+    if (localFavourites) {
+      setFavourites(JSON.parse(localFavourites))
+    }
   }
 
   const favouriteRoom = () => {
     const curr = selected.split(" - ")[0];
     let updatedFavourites;
-    if (!favourites.includes(curr)) {
-      if (favourites.length > 4) {
+    if (!favourites?.includes(curr)) {
+      if (favourites?.length > 4) {
         toast({
           title: 'Max Favourites Reached',
           description: "You've reached the maximum number of 4 favourites :(",
@@ -447,7 +450,8 @@ export default function RoomSearch() {
         })
         return;
       }
-      updatedFavourites = [...favourites, curr];
+      console.log(favourites)
+      updatedFavourites = favourites?.length === 0 ? [curr] : [...favourites, curr];
       setFavourites(updatedFavourites);
     } else {
       updatedFavourites = favourites.filter(f => f != curr);
@@ -457,12 +461,15 @@ export default function RoomSearch() {
   }
 
   const handleFavouriteClick = (e) => {
+    filterRoomInput.current.value = "";
+    // console.log(e)
     const roomId = e.target.childNodes[0].data;
-
+    
     const description = getRoomDescription(roomId)
     const fullName = `${roomId} - ${description}`
-    roomRef.current.value = fullName;
     setSelected(fullName)
+    // roomRef.current.value = fullName;
+    setRooms(allRooms)
   }
 
   const {colorMode} = useColorMode();
@@ -480,14 +487,14 @@ export default function RoomSearch() {
         <TabPanels>
           <TabPanel>
             <Box hidden={inputState !== 0}>
-                <Input placeholder="Search for a Room" mb={1} size="sm" onChange={filterRoomSelect} borderColor="gray.300"/>
-                <Select variant="filled" placeholder='Select Room' cursor="pointer" onChange={makeSelection} ref={roomRef}>
+                <Input placeholder="Search for a Room" mb={1} size="sm" ref={filterRoomInput} onChange={filterRoomSelect} borderColor="gray.300"/>
+                <Select variant="filled" placeholder='Select Room' cursor="pointer" onChange={makeSelection} value={selected} ref={roomRef}>
                   {availableRooms.map(r => (
                     <option value={r} key={r}>{r}</option>
                   ))}
                 </Select>
                 <HStack spacing={2} mt={1}>
-                  {favourites.map((fav) => (
+                  {favourites?.map((fav) => (
                     <Tooltip key={fav} label={fav}>
                       <Tag variant='subtle' colorScheme='gray' cursor="pointer" onClick={handleFavouriteClick}>
                         <TagLeftIcon boxSize='12px' as={FaStar} />
@@ -503,7 +510,7 @@ export default function RoomSearch() {
                     <Radio value="false" colorScheme='blue'>Custom Date & Time</Radio>
                   </Stack>
                 </RadioGroup>
-                <Select variant="filled" placeholder='Select Timeframe' cursor="pointer" mt={2} size="sm" isDisabled={isToday !== "true"} onChange={selectTime}>
+                <Select variant="filled" placeholder='Select Timeframe' cursor="pointer" mt={2} size="sm" isDisabled={isToday !== "false"} onChange={selectTime}>
                   {dates.map(date => (
                       <option value={date} key={date}>{date}</option>
                     ))}
@@ -677,8 +684,8 @@ export default function RoomSearch() {
       <HStack>
         <Button colorScheme='teal' w="100%" onClick={backHome}><Icon as={FaHome} mr={2} /> Home</Button>
         <Button colorScheme='purple' w="100%" onClick={reset} isDisabled={inputState === 3} hidden={inputState !== 2 && inputState !== 3}><SearchIcon mr={2}/> Search Again</Button>
-        <Tooltip label={favourites.includes(selected?.split(" - ")[0]) ? 'Remove from favourites' : 'Add to favourites'}>
-          <Button colorScheme={favourites.includes(selected?.split(" - ")[0]) ? 'yellow' : 'gray'} w="20%" onClick={favouriteRoom} isDisabled={inputState === 3} hidden={inputState !== 2 && inputState !== 3}><FaStar /></Button>
+        <Tooltip label={favourites?.includes(selected?.split(" - ")[0]) ? 'Remove from favourites' : 'Add to favourites'}>
+          <Button colorScheme={favourites?.includes(selected?.split(" - ")[0]) ? 'yellow' : 'gray'} w="20%" onClick={favouriteRoom} isDisabled={inputState === 3} hidden={inputState !== 2 && inputState !== 3}><FaStar /></Button>
         </Tooltip>
       </HStack>
        
