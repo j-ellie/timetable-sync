@@ -1,3 +1,4 @@
 *.exe
 data/
 .env
+main

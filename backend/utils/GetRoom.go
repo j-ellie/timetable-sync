@@ -54,6 +54,28 @@ func getTodayTime() (time.Time, time.Time) {
 	return currentTime, tomorrow
 }
 
+func GetRoomId(roomStr string) (string, string, error) {
+	jsonFile, err := os.Open("lists/rooms.json")
+	if err != nil {
+		return "", "", err
+	}
+
+	defer jsonFile.Close()
+
+	var rooms []StoredRoom
+	decoder := json.NewDecoder(jsonFile)
+	err = decoder.Decode(&rooms)
+	if err != nil {
+		return "nil", "nil", err
+	}
+	for _, room := range rooms {
+		if room.ID == strings.Split(roomStr, " - ")[0] {
+			return room.Identity, room.CategoryTypeIdentity, nil
+		}
+	}
+	return "", "", fmt.Errorf("Course not found.")
+}
+
 func GetRoom(targetRoom string, targetTime string) (Returnable, error){
 	fmt.Println(targetRoom, ">> Getting room status started...")
 	// parseTimeFormat := "Mon Jan 02 2006 @ 15:04:05" old format

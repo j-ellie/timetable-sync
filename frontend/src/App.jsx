@@ -15,8 +15,8 @@ import ColorModeSwitch from './components/ColorModeSwitch';
 
 
 function App() {
-  // const apiUrl = "http://localhost:1323"
-  const apiUrl = "https://api-ts.jamesz.dev"
+  const apiUrl = "http://localhost:1323"
+  // const apiUrl = "https://api-ts.jamesz.dev"
   const [signedIn, setSignIn] = useState(false);
   const [isLoading, setLoading] = useState(false);
   const [showPrivacy, setPrivacy] = useState(false);
