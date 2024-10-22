@@ -413,18 +413,20 @@ func main() {
 		return c.JSON(http.StatusOK, response)
 	})
 
-	e.GET("options", func(c echo.Context) error {
+	e.GET("/options", func(c echo.Context) error {
 		modId, err := utils.GetModules()
 		courseId, err2 := utils.GetAllCodes()
+		roomId, err3 := utils.GetAllRooms()
 
 		var response struct {
 			Success     bool   `json:"success"`
 			Message     string `json:"message"omitempty`
 			CourseIds     	[]string `json:"course_ids"omitempty`
 			ModuleIds     	[]string `json:"module_ids"omitempty`
+			RoomIds     	[]string `json:"room_ids"omitempty`
 		}
 
-		if err != nil || err2 != nil {
+		if err != nil || err2 != nil || err3 != nil {
 			response.Success = true
 			response.Message = "Failed to get modules and courses. Error: " + err.Error()
 			return c.JSON(http.StatusInternalServerError, response)
@@ -432,6 +434,7 @@ func main() {
 
 		response.CourseIds = courseId
 		response.ModuleIds = modId
+		response.RoomIds = roomId
 		response.Success = true
 
 		return c.JSON(http.StatusOK, response)
@@ -562,13 +565,23 @@ func main() {
 
 		courseCode := c.Request().URL.Query().Get("course")
 		moduleCode := c.Request().URL.Query().Get("module")
+		roomCode := c.Request().URL.Query().Get("room")
 		from := c.Request().URL.Query().Get("from")
 		to := c.Request().URL.Query().Get("to")
 
-		isModule := courseCode == "" && moduleCode != ""
+		var types int32;
+
+		isModule := courseCode == "" && moduleCode != "" && roomCode == ""
+		isRoom := courseCode == "" && moduleCode == "" && roomCode != ""
 		if isModule {
 			// quick fix here to avoid having to rewrite GetTimetable call
 			courseCode = moduleCode
+			types = 1
+		} else if isRoom{
+			courseCode = roomCode
+			types = 2
+		} else {
+			types = 0
 		}
 
 		timeFormat := "Mon, 02 Jan 2006 15:04:05 GMT"
@@ -582,7 +595,7 @@ func main() {
 			return c.JSON(http.StatusInternalServerError, response)
 		}
 
-		timetable := utils.GetTimetable(courseCode, isModule, nil, false, fromTime, toTime)
+		timetable := utils.GetTimetable(courseCode, types, nil, false, fromTime, toTime)
 		response.Events = timetable
 
 		response.Success = true

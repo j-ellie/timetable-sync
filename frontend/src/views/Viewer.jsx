@@ -7,13 +7,13 @@ import { Box,
   useToast,
   Spinner, 
   Drawer,
-  DrawerBody,
   DrawerFooter,
   DrawerHeader,
   DrawerOverlay,
   DrawerContent,
   DrawerCloseButton, 
   useDisclosure,
+  useColorMode,
 } from '@chakra-ui/react'  
 import { MultiSelect } from 'chakra-multiselect'
 import uniqolor from 'uniqolor';
@@ -34,8 +34,10 @@ export default function Viewer({ apiUrl }) {
 
   const [courseOptions, setCourseOptions] = useState([])
   const [moduleOptions, setModuleOptions] = useState([])
+  const [roomOptions, setRoomOptions] = useState([])
   const [selectedCourses, setSelectedCourses] = useState([])
   const [selectedModules, setSelectedModules] = useState([])
+  const [selectedRooms, setSelectedRooms] = useState([])
   const [renderedGroups, setRenderedGroups] = useState([])
 
   // state and disclosure for event clicking
@@ -77,7 +79,6 @@ export default function Viewer({ apiUrl }) {
         return;
       } else {
         if (!data.events) return;
-        // calendarRef.current.getApi().removeAllEvents();
         data.events.forEach(event => {
           const bgColor = uniqolor(event.Name.split(" ")[0], { differencePoint: 0})
           calendarRef.current.getApi().addEvent({
@@ -91,7 +92,6 @@ export default function Viewer({ apiUrl }) {
             description: event.Description,
             staff: event.Staff
           })
-          // calendarRef.current.getApi().getEventById(`${course}-${event.Name}`).eventContent 
         })
         setRenderedGroups([...renderedGroups, course])
         document.getElementById("loadingSpinner").hidden = true;
@@ -129,7 +129,6 @@ export default function Viewer({ apiUrl }) {
         return;
       } else {
         if (!data.events) return;
-        // calendarRef.current.getApi().removeAllEvents();
         data.events.forEach(event => {
           const bgColor = uniqolor(event.Name.split(" ")[0])
           calendarRef.current.getApi().addEvent({
@@ -159,18 +158,72 @@ export default function Viewer({ apiUrl }) {
     })
   }
 
+  const fetchRoomEvents = (room, from, to) => {
+    room = room.value;
+    console.log(">> Fetching events for room: ", room)
+    const fullUrl = new URL(apiUrl + `/timetable`)
+    fullUrl.searchParams.set("room", room)
+    fullUrl.searchParams.set("from", from)
+    fullUrl.searchParams.set("to", to)
+    fetch(fullUrl)
+    .then(response => response.json())
+    .then(data => {
+      if (!data.success) {
+        toast({
+          title: 'Failed to fetch timetable.',
+          description: "Couldn't get timetable from api. Error: " + err.toString(),
+          status: 'error',
+          duration: 5000,
+          isClosable: true,
+        })
+        return;
+      } else {
+        if (!data.events) return;
+        data.events.forEach(event => {
+          const bgColor = uniqolor(event.Name.split(" ")[0], { differencePoint: 0})
+          calendarRef.current.getApi().addEvent({
+            title: event.Name,
+            start: event.StartDateTime,
+            end: event.EndDateTime,
+            id: `${room}-${event.Name}`,
+            backgroundColor: bgColor.color,
+            
+            location: event.Location,
+            description: event.Description,
+            staff: event.Staff
+          })
+        })
+        setRenderedGroups([...renderedGroups, room])
+        document.getElementById("loadingSpinner").hidden = true;
+      }
+    })
+    .catch(err => {
+      toast({
+        title: 'Failed to fetch timetable.',
+        description: "Couldn't get timetable from api. Error: " + err.toString(),
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      })
+    })
+  }
+
   const repopulateTimetable = async (force=false) => {
     if (!calendarRef.current) return;
     const calApi = calendarRef.current.getApi();
-    // console.log(calApi.view)
     const from = calApi.view.currentStart.toUTCString()
     const to = calApi.view.currentEnd.toUTCString()
     
     const courses = selectedCourses?.map(course => course.value)
     const modules = selectedModules?.map(mod => mod.value)
+    const rooms = selectedRooms?.map(room => room.value)
+
+    if (courses.length === 0 && modules.length === 0) {
+      document.getElementById("loadingSpinner").hidden = true;
+    }
 
     renderedGroups.forEach(group => {
-      if (!courses.includes(group) && !modules.includes(group)) {
+      if (!courses.includes(group) && !modules.includes(group) && !rooms.includes(group)) {
         cleanEvents(group)
       }
     })
@@ -186,11 +239,18 @@ export default function Viewer({ apiUrl }) {
         fetchModuleEvents(mod, from, to)
       }
     })
+
+    selectedRooms?.forEach(room => {
+      if (!renderedGroups.includes(room.value) || force) {
+        fetchRoomEvents(room, from, to)
+      }
+    })
   }
 
   useEffect(() => {
     const courses = selectedCourses?.map(course => course.value)
     const modules = selectedModules?.map(mod => mod.value)
+    const rooms = selectedRooms?.map(room => room.value)
     
     const curr = new URL(window.location.href)
 
@@ -210,6 +270,14 @@ export default function Viewer({ apiUrl }) {
           formattedUrlModules.push({option: m, value: m})
         })
         setSelectedModules(formattedUrlModules);
+      }
+      const urlRooms = curr.searchParams.get("room")
+      if (urlRooms) {
+        let formattedUrlRooms = [];
+        urlRooms.split(",").forEach(m => {
+          formattedUrlRooms.push({option: m, value: m})
+        })
+        setSelectedRooms(formattedUrlRooms);
       }
       const embedMode = curr.searchParams.get("embed")
       if (embedMode) {
@@ -231,8 +299,13 @@ export default function Viewer({ apiUrl }) {
       } else {
         curr.searchParams.set("module", modules)
       }
-    }
 
+      if (selectedRooms.length === 0) {
+        curr.searchParams.delete("room")
+      } else {
+        curr.searchParams.set("room", rooms)
+      }
+    }
 
     window.history.replaceState({}, '', curr)
 
@@ -246,7 +319,7 @@ export default function Viewer({ apiUrl }) {
     document.getElementById("loadingSpinner").hidden = false;
     repopulateTimetable()
 
-  }, [selectedCourses, selectedModules])
+  }, [selectedCourses, selectedModules, selectedRooms])
 
   const convertAvailableCourses = (ids) => {
     const options = []
@@ -279,8 +352,24 @@ export default function Viewer({ apiUrl }) {
     }));
   }
 
+  const convertAvailableRooms = (ids) => {
+    const options = []
+    ids.forEach(room => {
+      options.push({label: room, value: room})
+    })
+
+    setRoomOptions(options)
+
+    const curr = JSON.parse(localStorage.getItem("cachedOptions")) || {};
+    localStorage.setItem("cachedOptions", JSON.stringify({
+      ...curr,
+      rooms: options,       // Update courses with new options
+      cacheTime: new Date()    // Update cacheTime with the current date
+    }));
+  }
+
   useEffect(() => {
-    if (courseOptions.length > 0 && moduleOptions.length > 0) return;
+    if (courseOptions.length > 0 && moduleOptions.length > 0 && roomOptions > 0) return;
 
     console.log("[option-loader] >> Checking for cached options...")
     const cache = JSON.parse(localStorage.getItem("cachedOptions"));
@@ -292,6 +381,7 @@ export default function Viewer({ apiUrl }) {
 
       setModuleOptions(cache.modules)
       setCourseOptions(cache.courses)
+      setRoomOptions(cache.rooms)
       return;
     }
 
@@ -312,6 +402,7 @@ export default function Viewer({ apiUrl }) {
       } else {
         convertAvailableCourses(data.course_ids)
         convertAvailableModules(data.module_ids)
+        convertAvailableRooms(data.room_ids)
       }
     })
     .catch(err => {
@@ -380,6 +471,8 @@ export default function Viewer({ apiUrl }) {
       })
   }, [calendarRef])
 
+  const {colorMode} = useColorMode();
+
   return (
     <Box width="90vw" height="100vh" mt={5}>
       <Button ref={btnRef} colorScheme='cyan' onClick={() => {window.location.href = "/"}} hidden={embedMode} mr={2} mb={1}>
@@ -407,7 +500,6 @@ export default function Viewer({ apiUrl }) {
           <DrawerHeader>Change Selection</DrawerHeader>
 
           <Box ml={6} mr={6}>
-          {/* <DrawerBody> */}
           <MultiSelect
             options={courseOptions}
             value={selectedCourses}
@@ -425,18 +517,23 @@ export default function Viewer({ apiUrl }) {
             disabled={selectedModules.length >= 5}
             zIndex={10}
             />
+          
+          <MultiSelect
+            options={roomOptions}
+            value={selectedRooms}
+            label={selectedRooms.length >= 5 ? 'Remove a room to continue' : 'Choose Rooms'}
+            onChange={setSelectedRooms}
+            disabled={selectedRooms.length >= 5}
+            zIndex={10}
+            />
           </Box>
-          {/* </DrawerBody> */}
-
           <DrawerFooter>
             <Button variant='outline' mr={3} onClick={onClose}>
               Close
             </Button>
-            {/* <Button colorScheme='blue'>Save</Button> */}
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
-      {/* <Button onClick={render}>Render</Button> */}
       <Box position="relative" id='cal-container' mt={2} pb={10}>
         <FullCalendar
             plugins={[ timeGridPlugin, dayGridPlugin ]}
@@ -467,9 +564,9 @@ export default function Viewer({ apiUrl }) {
         position="fixed"
         bottom={10}
         right={10}
-        bgColor="white"
         padding=".8em"
         boxShadow="lg"
+        bgColor={colorMode === "light" ? "white" : "black"}
         rounded="full"
         zIndex={100}
         hidden
