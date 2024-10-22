@@ -57,6 +57,8 @@ export default function RoomSearch() {
   const [inputState, setInputState] = useState(0)
   const [searchResults, setResults] = useState(null)
 
+  const [hideFavBtn, setHideFavBtn] = useState(false);
+
 
   const roomRef = useRef(null)
   const buildingRef = useRef(null)
@@ -396,8 +398,10 @@ export default function RoomSearch() {
   function refreshSelectedState(event) {
     if (event === 0) {
       setSelected(roomRef.current.value)
+      setHideFavBtn(false);
     } else {
       setSelected(buildingRef.current.value)
+      setHideFavBtn(true);
     }
     setInputState(0)
   }
@@ -409,8 +413,6 @@ export default function RoomSearch() {
     let newFilter = [];
 
     if (!value || value === "") {
-      // console.log(">> Defaulting filter: ", allRooms)
-
       setRooms(allRooms)
     } else {
       allRooms.forEach(r => {
@@ -419,14 +421,11 @@ export default function RoomSearch() {
           newFilter.push(r)
         }
       })
-      // console.log(">> Updated filter: ", newFilter)
       setRooms(newFilter)
     }
-
   }
 
   // favourites system
-
   const loadFavourites = () => {
     const localFavourites = localStorage.getItem("rcFavourites");
 
@@ -450,7 +449,6 @@ export default function RoomSearch() {
         })
         return;
       }
-      console.log(favourites)
       updatedFavourites = favourites?.length === 0 ? [curr] : [...favourites, curr];
       setFavourites(updatedFavourites);
     } else {
@@ -462,13 +460,10 @@ export default function RoomSearch() {
 
   const handleFavouriteClick = (e) => {
     filterRoomInput.current.value = "";
-    // console.log(e)
     const roomId = e.target.childNodes[0].data;
-    
     const description = getRoomDescription(roomId)
     const fullName = `${roomId} - ${description}`
     setSelected(fullName)
-    // roomRef.current.value = fullName;
     setRooms(allRooms)
   }
 
@@ -505,9 +500,9 @@ export default function RoomSearch() {
                 </HStack>
                 <RadioGroup onChange={setToday} value={isToday} mt={2}>
                   <Stack>
-                    <Radio value="true" colorScheme='blue'>Right Now</Radio>
-                    <Radio value="next" colorScheme='blue'>Next Hour</Radio>
-                    <Radio value="false" colorScheme='blue'>Custom Date & Time</Radio>
+                    <Radio value="true" colorScheme='blue' borderColor="white">Right Now</Radio>
+                    <Radio value="next" colorScheme='blue' borderColor="white">Next Hour</Radio>
+                    <Radio value="false" colorScheme='blue' borderColor="white">Custom Date & Time</Radio>
                   </Stack>
                 </RadioGroup>
                 <Select variant="filled" placeholder='Select Timeframe' cursor="pointer" mt={2} size="sm" isDisabled={isToday !== "false"} onChange={selectTime}>
@@ -591,9 +586,9 @@ export default function RoomSearch() {
               <Text fontSize="xs" mt={1} mb={1} color="gray.600">Only some buildings are shown here. Didn't find what you are looking for? Use the "Check Specific Room" function instead.</Text>
               <RadioGroup onChange={setToday} value={isToday} mt={2}>
                 <Stack>
-                  <Radio value="true" colorScheme='blue'>Right Now</Radio>
-                  <Radio value="next" colorScheme='blue'>Next Hour</Radio>
-                  <Radio value="false" colorScheme='blue'>Custom Date & Time</Radio>
+                  <Radio value="true" colorScheme='blue' borderColor="white">Right Now</Radio>
+                  <Radio value="next" colorScheme='blue' borderColor="white">Next Hour</Radio>
+                  <Radio value="false" colorScheme='blue' borderColor="white">Custom Date & Time</Radio>
                 </Stack>
               </RadioGroup>
               <Select variant="filled" placeholder='Select Timeframe' cursor="pointer" mt={2} size="sm" isDisabled={isToday !== "false"} onChange={selectTime} >
@@ -601,7 +596,7 @@ export default function RoomSearch() {
                     <option value={date} key={date}>{date}</option>
                   ))}
               </Select>
-              <Checkbox mt={1} onChange={(e) => {setShowRoomTypes(e.target.checked)}}>Show Room Types</Checkbox>
+              <Checkbox mt={1} onChange={(e) => {setShowRoomTypes(e.target.checked)}} borderColor="white">Show Room Types</Checkbox>
               <Button colorScheme='green' w="100%" mt={4} onClick={searchBuilding}><SearchIcon mr={2} /> Search</Button>
             </Box>
             <Stack direction="column" hidden={inputState !== 1 && inputState !== 3}>
@@ -685,7 +680,7 @@ export default function RoomSearch() {
         <Button colorScheme='teal' w="100%" onClick={backHome}><Icon as={FaHome} mr={2} /> Home</Button>
         <Button colorScheme='purple' w="100%" onClick={reset} isDisabled={inputState === 3} hidden={inputState !== 2 && inputState !== 3}><SearchIcon mr={2}/> Search Again</Button>
         <Tooltip label={favourites?.includes(selected?.split(" - ")[0]) ? 'Remove from favourites' : 'Add to favourites'}>
-          <Button colorScheme={favourites?.includes(selected?.split(" - ")[0]) ? 'yellow' : 'gray'} w="20%" onClick={favouriteRoom} isDisabled={inputState === 3} hidden={inputState !== 2 && inputState !== 3}><FaStar /></Button>
+          <Button colorScheme={favourites?.includes(selected?.split(" - ")[0]) ? 'yellow' : 'gray'} w="20%" onClick={favouriteRoom} isDisabled={inputState === 3} hidden={inputState !== 2 && inputState !== 3 || hideFavBtn}><FaStar /></Button>
         </Tooltip>
       </HStack>
        

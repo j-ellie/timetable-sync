@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 )
 
 type Room struct {
@@ -26,6 +27,8 @@ func main() {
 		// log.Println(page)
 		room := getRoomPage(page)
 		for _, c := range room {
+			filteredName := strings.Replace(c.FriendlyName, " - ", " ~ ", -1)
+			c.FriendlyName = filteredName
 			rooms = append([]Room{c}, rooms...)
 		}
 	}
