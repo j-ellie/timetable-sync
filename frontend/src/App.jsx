@@ -14,9 +14,7 @@ import Viewer from './views/Viewer'
 import ColorModeSwitch from './components/ColorModeSwitch';
 
 function App() {
-  // const apiUrl = "http://localhost:1323"
-  // const apiUrl = "https://api-ts.jamesz.dev"
-  const apiUrl = import.meta.env.API_URL;
+  const apiUrl = import.meta.env.VITE_API_URL;
   const [signedIn, setSignIn] = useState(false);
   const [isLoading, setLoading] = useState(false);
   const [showPrivacy, setPrivacy] = useState(false);

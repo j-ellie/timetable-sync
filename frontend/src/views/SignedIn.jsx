@@ -6,8 +6,7 @@ import DeleteAccount from '../components/DeleteAccount'
 import Admin from '../components/Admin'
 
 export default function LoggingIn({ setSignIn, data }) {
-  const apiEndpoint = "https://api-ts.jamesz.dev";
-  // const apiEndpoint = "http://localhost:1323";
+  const apiEndpoint = import.meta.env.VITE_API_URL;
   const toast = useToast()
   const [processing, setProcessing] = useState(false)
   const [availableCourses, setCourses] = useState([]) 

@@ -41,8 +41,7 @@ import { fetchEventSource } from "@microsoft/fetch-event-source"
 import convertToFriendly from '../utils/timeFormat';
 
 export default function RoomSearch() {
-  const apiEndpoint = "https://api-ts.jamesz.dev";
-  // const apiEndpoint = "http://localhost:1323";
+  const apiEndpoint = import.meta.env.VITE_API_URL;
   const toast = useToast()
 
   const [roomMap, setRoomMap] = useState({});
