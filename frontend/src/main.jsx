@@ -5,6 +5,7 @@ import './index.css'
 import { ChakraProvider, extendTheme, ColorModeScript } from '@chakra-ui/react'
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { MultiSelectTheme } from 'chakra-multiselect'
+import { Analytics } from "@vercel/analytics/react"
 
 const theme = extendTheme({
   initialColorMode: "light",
@@ -25,6 +26,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         </Alert> */}
         <ColorModeScript initialColorMode={theme.config.initialColorMode} />
         <App />
+        <Analytics />
       </GoogleOAuthProvider>
     </ChakraProvider>
   // </React.StrictMode>,

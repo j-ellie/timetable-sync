@@ -13,10 +13,10 @@ import GoogleSignin from './components/GoogleSignin';
 import Viewer from './views/Viewer'
 import ColorModeSwitch from './components/ColorModeSwitch';
 
-
 function App() {
-  const apiUrl = "http://localhost:1323"
+  // const apiUrl = "http://localhost:1323"
   // const apiUrl = "https://api-ts.jamesz.dev"
+  const apiUrl = import.meta.env.API_URL;
   const [signedIn, setSignIn] = useState(false);
   const [isLoading, setLoading] = useState(false);
   const [showPrivacy, setPrivacy] = useState(false);
@@ -28,7 +28,7 @@ function App() {
   const login = useGoogleLogin({
     onSuccess: codeResponse => {
       setLoading(true)
-      fetch("https://api-ts.jamesz.dev/auth", {headers: {"code": codeResponse.code}, method: "POST"})
+      fetch(apiUrl + "/auth", {headers: {"code": codeResponse.code}, method: "POST"})
       // fetch("http://localhost:1323/auth", {headers: {"code": codeResponse.code}, method: "POST"})
       .then(response => response.json())
       .then(data => {

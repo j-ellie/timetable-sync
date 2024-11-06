@@ -553,8 +553,6 @@ export default function Viewer({ apiUrl }) {
                 end: 'today,timeGridDay,timeGridWeek,dayGridMonth,prev,next' // will normally be on the right. if RTL, will be on the left
               }}
             eventContent={renderEventContent}
-            weekNumbers={true}
-            weekNumberCalculation={calculateSemWeek}
             eventClick={handleEventClick}
             datesSet={handleCalDatesSet}
         />

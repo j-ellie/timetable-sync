@@ -258,7 +258,7 @@ func GetRoom(targetRoom string, targetTime string) (Returnable, error){
 			Began: startTime,
 			Ends: endTime,
 			EventName: eventName,
-			Module: moduleName
+			Module: moduleName,
 		}
 
 		rawResults = append(rawResults, newEvent)
