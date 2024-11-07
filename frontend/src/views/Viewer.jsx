@@ -17,17 +17,20 @@ import { Box,
 } from '@chakra-ui/react'  
 import { MultiSelect } from 'chakra-multiselect'
 import uniqolor from 'uniqolor';
-import calculateSemWeek from '../utils/weekNos'
 import { toPng } from "html-to-image"
 import EventPopover from '../components/EventPopover'
 import EmbedModal from '../components/EmbedModal'
 import { FaHome } from 'react-icons/fa'
+
+import DateSelect from '../components/DateSelect'
 
 export default function Viewer({ apiUrl }) {
   const { isOpen, onOpen, onClose } = useDisclosure()
   const btnRef = useRef()
   const calendarRef = useRef();
   const toast = useToast();
+
+  const [selectedDate, setSelectedDate] = useState(new Date());
 
   const [initialLoad, setInitialLoad] = useState(false);
   const [embedMode, setEmbedMode] = useState(false);
@@ -431,20 +434,31 @@ export default function Viewer({ apiUrl }) {
     eventModalTrigger();
   }
 
+  let debounceTimer;
+
   const handleCalDatesSet = (ev) => {
-    if (!calendarRef.current) return;
-    let cancelRender = false;
-    const renderedEvents = calendarRef.current.getApi().getEvents();
-    renderedEvents.forEach((event) => {
-      if (event.start.getDate() === ev.start.getDate()) {
-        cancelRender = true;
-        return;
+    // stop running the previous call if exists
+    clearTimeout(debounceTimer);
+
+    debounceTimer = setTimeout(() => {
+      if (!calendarRef.current) return;
+      let cancelRender = false;
+      const renderedEvents = calendarRef.current.getApi().getEvents();
+      renderedEvents.forEach((event) => {
+        if (event.start.toDateString() === ev.start.toDateString()) {
+          cancelRender = true;
+          return;
+        }
+      })
+
+      console.log("cancel render is ", cancelRender)
+      // issue here, sometimes cancelRender is through even though there is no events
+      
+      if (!cancelRender) {
+        repopulateTimetable(true);
       }
-    })
-    
-    if (!cancelRender) {
-      repopulateTimetable(true);
-    }
+    }, 1000)
+
   }
 
   const downloadFilter = (node) => {
@@ -487,6 +501,7 @@ export default function Viewer({ apiUrl }) {
       <Button colorScheme='green' onClick={downloadImage} hidden={embedMode} mr={2} mb={1}>
         Save to Image
       </Button>
+      <DateSelect setSelected={setSelectedDate} selected={selectedDate} cal={calendarRef} />
       <Drawer
         isOpen={isOpen}
         placement='top'
@@ -547,6 +562,7 @@ export default function Viewer({ apiUrl }) {
             slotMinTime="08:00:00"
             slotMaxTime="23:00:00"
             allDaySlot={false}
+            locale="en-gb"
             scrollTime="09:00:00"
             headerToolbar={{
                 start: 'title', // will normally be on the left. if RTL, will be on the right
