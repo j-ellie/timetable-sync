@@ -33,7 +33,7 @@ import {
   Checkbox, } from '@chakra-ui/react'
 import React, { useState, useEffect, useRef } from 'react'
 import { ArrowLeftIcon, SearchIcon } from "@chakra-ui/icons"
-import { FaCheckCircle, FaHome, FaStar } from "react-icons/fa";
+import { FaCheckCircle, FaExternalLinkAlt, FaExternalLinkSquareAlt, FaHome, FaStar } from "react-icons/fa";
 import { FaCircleXmark } from "react-icons/fa6";
 
 import { fetchEventSource } from "@microsoft/fetch-event-source"
@@ -466,6 +466,11 @@ export default function RoomSearch() {
     setRooms(allRooms)
   }
 
+  const openFullTimetable = () => {
+    const url = "/viewer?room=" + selected
+    window.open(url, '_blank').focus();
+  }
+
   const {colorMode} = useColorMode();
 
   return (
@@ -517,7 +522,6 @@ export default function RoomSearch() {
                 </Center>
                 <Text textAlign="center">Searching... Please wait a moment :)</Text>
               </Stack>
-              {/* TODO: Add until text (free until, occupied until) */}
               <Box hidden={inputState !== 2}>
                 <Text textAlign="center"><b>{selected}</b></Text>
                 <Text mb={2} textAlign="center" color="gray.600"><b>{targetTime.toDateString() + " @ " + targetTime.toTimeString().split(" ")[0]}</b></Text>
@@ -653,7 +657,7 @@ export default function RoomSearch() {
 
                         return (
                           <Tr key={res.id}>
-                            <Td>{res.id}</Td>
+                            <Td><a href={`/viewer?room=${res.id}`} target="_blank" rel="noopener noreferrer" className="roomlink">{res.id}</a></Td>
                             <Td>{nextEv}</Td>
                             {
                               showRoomTypes ?
@@ -680,6 +684,9 @@ export default function RoomSearch() {
         <Button colorScheme='purple' w="100%" onClick={reset} isDisabled={inputState === 3} hidden={inputState !== 2 && inputState !== 3}><SearchIcon mr={2}/> Search Again</Button>
         <Tooltip label={favourites?.includes(selected?.split(" - ")[0]) ? 'Remove from favourites' : 'Add to favourites'}>
           <Button colorScheme={favourites?.includes(selected?.split(" - ")[0]) ? 'yellow' : 'gray'} w="20%" onClick={favouriteRoom} isDisabled={inputState === 3} hidden={inputState !== 2 && inputState !== 3 || hideFavBtn}><FaStar /></Button>
+        </Tooltip>
+        <Tooltip label="View Full Timetable">
+          <Button colorScheme="orange" w="20%" onClick={openFullTimetable} isDisabled={inputState === 3} hidden={inputState !== 2 && inputState !== 3 || hideFavBtn}><FaExternalLinkAlt /></Button>
         </Tooltip>
       </HStack>
        
