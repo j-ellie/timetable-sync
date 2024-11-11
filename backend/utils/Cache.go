@@ -50,7 +50,7 @@ func CheckCache(roomId string, targetTime time.Time) ([]RawEvent, error) {
 	cached, err := Cache.Get(ctx, name).Result()
     if err == redis.Nil {
         fmt.Println("[Cache] >> " + roomId + " not cached.")
-		return nil, nil
+		return nil, fmt.Errorf("No Cache")
     } else if err != nil {
 		fmt.Errorf("[Cache] >> ERROR: " + err.Error())
         return nil, err

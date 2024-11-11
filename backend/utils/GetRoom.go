@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+	localcache "TimetableSync/cache"
 
 	"github.com/labstack/echo/v4"
 )
@@ -41,13 +42,6 @@ type Returnable struct {
 	NextEvent Event `json:"nextEvent"`
 }
 
-type StoredRoom struct {
-	FriendlyName 			string `json:"friendly_name"`
-	ID 						string `json:"id"`
-	CategoryTypeIdentity 	string `json:"category_type_identity"`
-	Identity 				string `json:"identity"`
-}
-
 func getTodayTime() (time.Time, time.Time) {
 	currentTime := time.Now().AddDate(0, 0, 5)
 	tomorrow := currentTime.AddDate(0,0,1)
@@ -55,19 +49,8 @@ func getTodayTime() (time.Time, time.Time) {
 }
 
 func GetRoomId(roomStr string) (string, string, error) {
-	jsonFile, err := os.Open("lists/rooms.json")
-	if err != nil {
-		return "", "", err
-	}
+	rooms := localcache.GetRooms()
 
-	defer jsonFile.Close()
-
-	var rooms []StoredRoom
-	decoder := json.NewDecoder(jsonFile)
-	err = decoder.Decode(&rooms)
-	if err != nil {
-		return "nil", "nil", err
-	}
 	for _, room := range rooms {
 		if room.ID == strings.Split(roomStr, " - ")[0] {
 			return room.Identity, room.CategoryTypeIdentity, nil
@@ -105,26 +88,15 @@ func GetRoom(targetRoom string, targetTime string) (Returnable, error){
 	nextComplete := false
 
 	cache, cacheErr := CheckCache(targetRoom, parsedTime)
-	if cacheErr == nil && cache != nil {
+	if cacheErr == nil {
 		// present in the cache
 		rawResults = cache
 		fmt.Println("Using Cache")
 	} else {
 		// not cached or it errored
 		fmt.Println("Not using Cache")
-		jsonFile, err := os.Open("lists/rooms.json")
-		if err != nil {
-			return Returnable{}, err
-		}
+		storedRooms := localcache.GetRooms()
 
-		defer jsonFile.Close()
-
-		var storedRooms []StoredRoom
-		decoder := json.NewDecoder(jsonFile)
-		err = decoder.Decode(&storedRooms)
-		if err != nil {
-			return Returnable{}, err
-		}
 		for _, room := range storedRooms {
 			if room.ID == targetRoom {
 				identity = room.Identity
@@ -324,22 +296,8 @@ func GetRoom(targetRoom string, targetTime string) (Returnable, error){
 }
 
 func GetFreeRoomsInBuilding(buildingName string, targetTime string) ([]Returnable, error) {
-	jsonFile, err := os.Open("lists/rooms.json")
-	if err != nil {
-		return nil, err
-	}
+	rooms := localcache.GetRooms()
 
-	defer jsonFile.Close()
-
-	var rooms []StoredRoom
-	decoder := json.NewDecoder(jsonFile)
-	err = decoder.Decode(&rooms)
-	if err != nil {
-		return nil, err
-	}
-
-	// c.Response().Header().Set(echo.HeaderContentType, "text/plain")
-    // c.Response().WriteHeader(http.StatusOK)
 
 	var returnables []Returnable
 	for _, room := range rooms {
@@ -348,33 +306,14 @@ func GetFreeRoomsInBuilding(buildingName string, targetTime string) ([]Returnabl
 
 			if err == nil && curr.Available {
 				returnables = append(returnables, curr)
-
-				// _, err := c.Response().Write([]byte(fmt.Sprintf(curr)))
-				// if err != nil {
-				// 	return err
-				// }
-				// c.Response().Flush()
 			}
 		}
-		// ids = append(ids, room.ID + " - " + room.FriendlyName)
 	}
 	return returnables, nil
 }
 
 func StreamGetFreeRoomsInBuilding(c echo.Context, buildingName string, targetTime string) ([]Returnable, error) {
-	jsonFile, err := os.Open("lists/rooms.json")
-	if err != nil {
-		return nil, err
-	}
-
-	defer jsonFile.Close()
-
-	var rooms []StoredRoom
-	decoder := json.NewDecoder(jsonFile)
-	err = decoder.Decode(&rooms)
-	if err != nil {
-		return nil, err
-	}
+	rooms := localcache.GetRooms()
 
 	c.Response().Header().Set(echo.HeaderContentType, "text/event-stream")
 	c.Response().Header().Set(echo.HeaderCacheControl, "no-cache")
@@ -386,6 +325,8 @@ func StreamGetFreeRoomsInBuilding(c echo.Context, buildingName string, targetTim
 		Data Returnable `json:"data"`
 	}
 
+	buffer := &bytes.Buffer{}
+
 	var returnables []Returnable
 	for _, room := range rooms {
 		if strings.HasPrefix(room.ID, buildingName) {
@@ -396,41 +337,35 @@ func StreamGetFreeRoomsInBuilding(c echo.Context, buildingName string, targetTim
 
 				response.Data = curr
 
+				buffer.Reset()
 
-				c.Response().Write([]byte("event: message\n"))
+				buffer.WriteString("event: message\n")
 				data, err := json.Marshal(curr)
 				if err != nil {
 					return nil, err
 				}
-				c.Response().Write([]byte("data:"))
-				c.Response().Write([]byte(data))
-				c.Response().Write([]byte("\n\n"))
+				buffer.WriteString("data:")
+				buffer.Write(data)
+				buffer.WriteString("\n\n")
+				
+				c.Response().Write(buffer.Bytes())
 				c.Response().Flush()
 			}
 		}
 	}
 
-	c.Response().Write([]byte("event: end\n"))
-	c.Response().Write([]byte("data: no"))
-	c.Response().Write([]byte("\n\n"))
+	buffer.Reset()
+	buffer.WriteString("event: end\n")
+	buffer.WriteString("data: no")
+	buffer.WriteString("\n\n")
+	c.Response().Write(buffer.Bytes())
 
 	return returnables, nil
 }
 
 func GetAllRooms() ([]string, error) {
-	jsonFile, err := os.Open("lists/rooms.json")
-	if err != nil {
-		return nil, err
-	}
+	rooms := localcache.GetRooms()
 
-	defer jsonFile.Close()
-
-	var rooms []StoredRoom
-	decoder := json.NewDecoder(jsonFile)
-	err = decoder.Decode(&rooms)
-	if err != nil {
-		return nil, err
-	}
 	var ids []string
 	for _, room := range rooms {
 		ids = append(ids, room.ID + " - " + room.FriendlyName)
@@ -453,8 +388,10 @@ func GetBuildings() ([]string, error) {
 		return nil, err
 	}
 	var ids []string
-	for _, b := range buildings {
-		ids = append(ids, b)
-	}
+
+	ids = append(ids, buildings...)
+	// for _, b := range buildings {
+	// 	ids = append(ids, b)
+	// }
 	return ids, nil
 }
