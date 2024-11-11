@@ -3,6 +3,7 @@ package main
 import (
 	"TimetableSync/models"
 	"TimetableSync/utils"
+	"TimetableSync/cache"
 	"strings"
 	"context"
 	"encoding/json"
@@ -24,25 +25,6 @@ import (
 	"github.com/go-co-op/gocron"
 )
 
-func testStream(c echo.Context) error {
-    // Set the response header to indicate that the response will be streamed
-    c.Response().Header().Set(echo.HeaderContentType, "text/plain")
-    c.Response().WriteHeader(http.StatusOK)
-
-    // Some data to stream (example: counting from 1 to 10)
-    for i := 1; i <= 10; i++ {
-        // Send the data to the client
-        _, err := c.Response().Write([]byte(fmt.Sprintf("%d\n", i)))
-        if err != nil {
-            return err
-        }
-        c.Response().Flush()
-        time.Sleep(time.Second) // Simulate some delay
-    }
-
-    return nil
-}
-
 func main() {
 	err := godotenv.Load()
 	if err != nil {
@@ -55,6 +37,10 @@ func main() {
         RedirectURL:  "postmessage",
         Scopes:       []string{calendar.CalendarEventsScope, calendar.CalendarScope},
         Endpoint:     google.Endpoint,
+    }
+
+	if err := cache.LoadRooms(); err != nil {
+        panic(fmt.Sprintf("Failed to load rooms data into cache: %v", err))
     }
 
 	e := echo.New()
@@ -506,7 +492,10 @@ func main() {
 			response.Message = "No room number given."
 			return c.JSON(http.StatusBadRequest, response)
 		}
-		roomInfo, _ := utils.GetRoom(roomNumber, targetTime)
+		roomInfo, grErr := utils.GetRoom(roomNumber, targetTime)
+		if grErr != nil {
+			fmt.Println("Get Room Error: ", grErr)
+		}
 
 		
 		response.Success = true
@@ -602,8 +591,6 @@ func main() {
 		response.Message = fmt.Sprintf("Fetched %d events", len(timetable))
 		return c.JSON(http.StatusOK, response)
 	})
-
-	e.GET("/stream", testStream)
 
 	// e.GET("/announcement", func (c echo.Context) error {
 	// 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
