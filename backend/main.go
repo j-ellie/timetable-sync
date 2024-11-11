@@ -506,7 +506,10 @@ func main() {
 			response.Message = "No room number given."
 			return c.JSON(http.StatusBadRequest, response)
 		}
-		roomInfo, _ := utils.GetRoom(roomNumber, targetTime)
+		roomInfo, grErr := utils.GetRoom(roomNumber, targetTime)
+		if grErr != nil {
+			fmt.Println("Get Room Error: ", grErr)
+		}
 
 		
 		response.Success = true
