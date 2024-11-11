@@ -93,6 +93,7 @@ func GetRoom(targetRoom string, targetTime string) (Returnable, error){
 		return Returnable{}, err
 	}
 	parsedTime = parsedTime.UTC()
+	cacheTime := time.Date(parsedTime.Year(), parsedTime.Month(), parsedTime.Day(), 8, 0, 0, 0, parsedTime.Location())
 
 	var rawResults []RawEvent
 
@@ -137,7 +138,7 @@ func GetRoom(targetRoom string, targetTime string) (Returnable, error){
 		}
 
 		
-		url := "https://scientia-eu-v4-api-d1-03.azurewebsites.net/api/Public/CategoryTypes/Categories/Events/Filter/a1fdee6b-68eb-47b8-b2ac-a4c60c8e6177" + "?startRange="+ parsedTime.Format(timeFormat) + "&endRange=" + parsedTime.AddDate(0, 0, 1).Format(timeFormat)
+		url := "https://scientia-eu-v4-api-d1-03.azurewebsites.net/api/Public/CategoryTypes/Categories/Events/Filter/a1fdee6b-68eb-47b8-b2ac-a4c60c8e6177" + "?startRange="+ cacheTime.Format(timeFormat) + "&endRange=" + cacheTime.AddDate(0, 0, 1).Format(timeFormat)
 
 		requestBody := map[string]interface{}{
 			"ViewOptions": map[string]interface{}{
@@ -311,7 +312,7 @@ func GetRoom(targetRoom string, targetTime string) (Returnable, error){
 
 	if cache == nil {
 		fmt.Println(targetRoom, ">> Caching...")
-		cacheErr = CacheRooms(targetRoom, parsedTime, parsedTime.AddDate(0, 0, 1), rawResults)
+		cacheErr = CacheRooms(targetRoom, cacheTime, rawResults)
 		if cacheErr != nil {
 			fmt.Println(targetRoom, ">> Failed to Cache Error: ", cacheErr.Error())
 		}

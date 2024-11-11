@@ -15,8 +15,7 @@ import (
 type CachedRoom struct {
 	RoomID string `json:"room_id"`
 	CachedAt time.Time `json:"cached_at"`
-	From time.Time `json:"from"`
-	To time.Time `json:"to"`
+	Date time.Time `json:"date"`
 	Events []RawEvent `json:"events"`
 }
 
@@ -31,7 +30,7 @@ func ConnectCache() *redis.Client {
 	redisPassw := os.Getenv("REDIS_PASS")
 	rdb := redis.NewClient(&redis.Options{
         Addr:     redisAddr,
-        Password: redisPassw, // no password set
+        Password: redisPassw,
         DB:       0,  // use default DB
     })
 
@@ -42,32 +41,13 @@ func ConnectCache() *redis.Client {
     }
     fmt.Println("Connected to Redis!")
 	return rdb
-
-    // err := rdb.Set(ctx, "key", "value", 0).Err()
-    // if err != nil {
-    //     panic(err)
-    // }
-
-    // val, err := rdb.Get(ctx, "key").Result()
-    // if err != nil {
-    //     panic(err)
-    // }
-    // fmt.Println("key", val)
-
-    // val2, err := rdb.Get(ctx, "key2").Result()
-    // if err == redis.Nil {
-    //     fmt.Println("key2 does not exist")
-    // } else if err != nil {
-    //     panic(err)
-    // } else {
-    //     fmt.Println("key2", val2)
-    // }
 }
 
 var Cache *redis.Client = ConnectCache()
 
 func CheckCache(roomId string, targetTime time.Time) ([]RawEvent, error) {
-	cached, err := Cache.Get(ctx, roomId).Result()
+    name := fmt.Sprintf("%s:%s", roomId, targetTime.Format("2006-01-02"))
+	cached, err := Cache.Get(ctx, name).Result()
     if err == redis.Nil {
         fmt.Println("[Cache] >> " + roomId + " not cached.")
 		return nil, nil
@@ -84,19 +64,19 @@ func CheckCache(roomId string, targetTime time.Time) ([]RawEvent, error) {
             return nil, jsonErr
         }
 
-        if targetTime.Before(parsedCache.To) && targetTime.After(parsedCache.From) || targetTime.Equal(parsedCache.From) {
-            return parsedCache.Events, nil
-        }
-        return nil, nil
+        return parsedCache.Events, nil
+        // if targetTime.Before(parsedCache.To) && targetTime.After(parsedCache.From) || targetTime.Equal(parsedCache.From) {
+        //     return parsedCache.Events, nil
+        // }
+        // return nil, nil
     }
 }
 
-func CacheRooms(roomId string, from time.Time, to time.Time, events []RawEvent) (error) {
+func CacheRooms(roomId string, date time.Time, events []RawEvent) (error) {
     toCache := CachedRoom{
         RoomID: roomId,
         CachedAt: time.Now(),
-        From: from,
-        To: to,
+        Date: date,
         Events: events,
     }
 
@@ -105,7 +85,11 @@ func CacheRooms(roomId string, from time.Time, to time.Time, events []RawEvent) 
         return jsonErr
     }
     
-    err := Cache.Set(ctx, roomId, formatted, 0).Err()
+    name := fmt.Sprintf("%s:%s", roomId, date.Format("2006-01-02"))
+
+    expiry := time.Hour * 2
+
+    err := Cache.Set(ctx, name, formatted, expiry).Err()
     if err != nil {
         return err
     }
