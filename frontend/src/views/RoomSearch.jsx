@@ -625,7 +625,7 @@ export default function RoomSearch() {
                       pb={2}
                     >
                       <Center h="100%">
-                        <Text>{searchResults?.length}</Text>
+                        <Text>{searchResults?.length || 0}</Text>
                       </Center>
                     </Box>
                 </Center>
