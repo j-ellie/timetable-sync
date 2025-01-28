@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -366,7 +365,7 @@ func SyncTimetable(config oauth2.Config, accessToken string, refreshToken string
 	currentColorId := 0
 
 	if len(timetable) == 0 {
-		return errors.New("no events in fetched timetable")
+		return nil
 	}
 
 	for _, event := range timetable {
@@ -413,7 +412,7 @@ func SyncTimetable(config oauth2.Config, accessToken string, refreshToken string
 
 			Source: &calendar.EventSource{
 				Title: "DCU (Timetable Sync)",
-				Url: "https://ts.jamesz.dev",
+				Url: "https://ts.elliee.me",
 			},
 		}
 
@@ -425,6 +424,7 @@ func SyncTimetable(config oauth2.Config, accessToken string, refreshToken string
 
 		// Print the event ID if successfully inserted
 		fmt.Printf("Event created: %s\n", inputtedEvent.Id)
+		time.Sleep(200 * time.Millisecond)
 	}
 	var userCollection *mongo.Collection = GetCollections(DB, "users")
 
