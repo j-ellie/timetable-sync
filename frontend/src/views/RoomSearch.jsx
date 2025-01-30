@@ -421,6 +421,9 @@ export default function RoomSearch() {
         }
       })
       setRooms(newFilter)
+      if (newFilter.length === 1) {
+        setSelected(newFilter[0]);
+      }
     }
   }
 
