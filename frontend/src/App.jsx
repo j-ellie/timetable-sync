@@ -150,9 +150,9 @@ function App() {
                   curr.pathname = "/viewer"
                   window.history.replaceState({}, '', curr)
 
-                 }} borderWidth="2px" borderColor="gold">
+                 }}>
                   Viewer
-                  <Badge colorScheme={colorMode === "light" ? 'green' : ""} ml={2}>New</Badge>
+                  {/* <Badge colorScheme={colorMode === "light" ? 'green' : ""} ml={2}>New</Badge> */}
                 </Button>
               </Flex>
 

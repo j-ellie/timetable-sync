@@ -489,6 +489,7 @@ export default function RoomSearch() {
         <TabPanels>
           <TabPanel>
             <Box hidden={inputState !== 0}>
+              <form onSubmit={searchSpecific} action='#'>
                 <Input placeholder="Search for a Room" mb={1} size="sm" ref={filterRoomInput} onChange={filterRoomSelect} borderColor="gray.300"/>
                 <Select variant="filled" placeholder='Select Room' cursor="pointer" onChange={makeSelection} value={selected} ref={roomRef}>
                   {availableRooms.map(r => (
@@ -517,7 +518,8 @@ export default function RoomSearch() {
                       <option value={date} key={date}>{date}</option>
                     ))}
                 </Select>
-                <Button colorScheme='green' w="100%" mt={4} onClick={searchSpecific}><SearchIcon mr={2} /> Search</Button>
+                <Button type='submit' colorScheme='green' w="100%" mt={4} onClick={searchSpecific} className="searchBtn"><SearchIcon mr={2} /> Search</Button>
+                </form>
               </Box>
               <Stack direction="column" hidden={inputState !== 1}>
                 <Center>
@@ -603,7 +605,7 @@ export default function RoomSearch() {
                   ))}
               </Select>
               <Checkbox mt={1} onChange={(e) => {setShowRoomTypes(e.target.checked)}} borderColor="white">Show Room Types</Checkbox>
-              <Button colorScheme='green' w="100%" mt={4} onClick={searchBuilding}><SearchIcon mr={2} /> Search</Button>
+              <Button colorScheme='green' w="100%" mt={4} onClick={searchBuilding} className='searchBtnBuilding'><SearchIcon mr={2} /> Search</Button>
             </Box>
             <Stack direction="column" hidden={inputState !== 1 && inputState !== 3}>
               <Center>
