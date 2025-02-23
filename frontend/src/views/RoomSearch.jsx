@@ -114,7 +114,8 @@ export default function RoomSearch() {
     return roomMap[target] || "No Description";
   }
 
-  const searchSpecific = () => {
+  const searchSpecific = (e) => {
+    e.preventDefault();
     let selectedRoom = selected;
     if (!selected) {
       // the idea for this feature was given by Heather :)
