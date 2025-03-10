@@ -2,16 +2,15 @@ package utils
 
 import (
 	"context"
-	"log"
-	"time"
 	"fmt"
+	"log"
 	"os"
+	"time"
 
+	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"github.com/joho/godotenv"
 )
-
 
 func Connect() *mongo.Client {
 	fmt.Println("Connecting to the database...")
@@ -26,7 +25,7 @@ func Connect() *mongo.Client {
 	if err != nil {
 		log.Fatal(err)
 	}
- 
+
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	err = client.Connect(ctx)

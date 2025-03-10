@@ -1,18 +1,19 @@
 package main
 
 import (
+	"TimetableSync/cache"
 	"TimetableSync/models"
 	"TimetableSync/utils"
-	"TimetableSync/cache"
-	"strings"
 	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
-	"time"
 	"os"
+	"strings"
+	"time"
 
+	"github.com/go-co-op/gocron"
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -22,7 +23,6 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/calendar/v3"
-	"github.com/go-co-op/gocron"
 )
 
 func main() {
@@ -32,16 +32,16 @@ func main() {
 	}
 
 	config := oauth2.Config{
-        ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
-        ClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
-        RedirectURL:  "postmessage",
-        Scopes:       []string{calendar.CalendarEventsScope, calendar.CalendarScope},
-        Endpoint:     google.Endpoint,
-    }
+		ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
+		ClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
+		RedirectURL:  "postmessage",
+		Scopes:       []string{calendar.CalendarEventsScope, calendar.CalendarScope},
+		Endpoint:     google.Endpoint,
+	}
 
 	if err := cache.LoadRooms(); err != nil {
-        panic(fmt.Sprintf("Failed to load rooms data into cache: %v", err))
-    }
+		panic(fmt.Sprintf("Failed to load rooms data into cache: %v", err))
+	}
 
 	e := echo.New()
 	e.GET("/", func(c echo.Context) error {
@@ -58,9 +58,9 @@ func main() {
 		code := c.Request().Header.Get("code")
 
 		var response struct {
-			Success     bool   `json:"success"`
-			Message     string `json:"message,omitempty"`
-			UserData    *echo.Map `json:"data,omitempty"`
+			Success  bool      `json:"success"`
+			Message  string    `json:"message,omitempty"`
+			UserData *echo.Map `json:"data,omitempty"`
 		}
 		token, err := config.Exchange(context.Background(), code)
 		if err != nil {
@@ -69,7 +69,7 @@ func main() {
 			response.Message = "Failed to exchange token."
 			return c.JSON(http.StatusBadRequest, response)
 		}
-		
+
 		userInfo, err := utils.GetGoogleUser(token.AccessToken)
 
 		if err != nil {
@@ -85,24 +85,24 @@ func main() {
 
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		dbErr := userCollection.FindOne(ctx, bson.M{"email" : userInfo.Email}).Decode(&user)
+		dbErr := userCollection.FindOne(ctx, bson.M{"email": userInfo.Email}).Decode(&user)
 		if dbErr != nil {
 			if dbErr.Error() == "mongo: no documents in result" {
-				newUser := models.User {
-					ID: primitive.NewObjectID(),
-					Email: userInfo.Email,
-					GoogleID: userInfo.ID,
-					FirstName: userInfo.FirstName,
-					UserPicture: userInfo.PictureURL,
-					AccessToken: token.AccessToken,
+				newUser := models.User{
+					ID:           primitive.NewObjectID(),
+					Email:        userInfo.Email,
+					GoogleID:     userInfo.ID,
+					FirstName:    userInfo.FirstName,
+					UserPicture:  userInfo.PictureURL,
+					AccessToken:  token.AccessToken,
 					RefreshToken: token.RefreshToken,
-					Expiry: token.Expiry,
+					Expiry:       token.Expiry,
 				}
 				_, dbErr2 := userCollection.InsertOne(ctx, newUser)
 				response.Success = true
 				response.Message = "Logged in. (NEW USER)"
 				response.UserData = &echo.Map{"data": newUser}
-				
+
 				if dbErr2 != nil {
 					response.Success = false
 					response.Message = "Database Error."
@@ -117,18 +117,18 @@ func main() {
 			}
 		}
 		update := bson.M{"$set": bson.M{
-			"access_token": token.AccessToken,
+			"access_token":  token.AccessToken,
 			"refresh_token": token.RefreshToken,
-			"expiry": token.Expiry,
+			"expiry":        token.Expiry,
 		}}
-		_, dbErr4 := userCollection.UpdateOne(ctx, bson.M{"email" : userInfo.Email}, update)
+		_, dbErr4 := userCollection.UpdateOne(ctx, bson.M{"email": userInfo.Email}, update)
 		if dbErr4 != nil {
 			fmt.Println(dbErr4)
 			response.Success = false
 			response.Message = "Database Error."
 			return c.JSON(http.StatusInternalServerError, response)
 		}
-	
+
 		user.AccessToken = token.AccessToken
 		user.RefreshToken = token.RefreshToken
 
@@ -142,8 +142,8 @@ func main() {
 		auth := c.Request().Header.Get("Authorization")
 
 		var response struct {
-			Success     bool   `json:"success"`
-			Message     string `json:"message"omitempty`
+			Success bool   `json:"success"`
+			Message string `json:"message"omitempty`
 		}
 
 		var data models.User
@@ -178,10 +178,9 @@ func main() {
 
 		var userCollection *mongo.Collection = utils.GetCollections(utils.DB, "users")
 
-
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		dbRes := userCollection.FindOneAndReplace(ctx, bson.M{"email" : data.Email, "_id": data.ID, "google_id": data.GoogleID}, data)
+		dbRes := userCollection.FindOneAndReplace(ctx, bson.M{"email": data.Email, "_id": data.ID, "google_id": data.GoogleID}, data)
 		if dbRes.Err() != nil {
 			fmt.Println(dbRes.Err())
 			response.Success = false
@@ -192,16 +191,15 @@ func main() {
 		if strings.HasPrefix(data.LastSync.String(), "0") {
 			err := utils.SyncTimetable(config, data.AccessToken, data.RefreshToken, data.Expiry, data.Email, data.CourseCode, false, data.IgnoredEvents)
 			err2 := utils.SendWelcome(data)
-			if (err2 != nil) {
+			if err2 != nil {
 				fmt.Println(err2)
 			}
-			if (err != nil) {
+			if err != nil {
 				response.Success = false
 				response.Message = "Settings were saved, but failed to sync timetable."
 				return c.JSON(http.StatusOK, response)
 			}
 		}
-
 
 		response.Success = true
 		response.Message = "Saved to database"
@@ -212,8 +210,8 @@ func main() {
 		auth := c.Request().Header.Get("Authorization")
 
 		var response struct {
-			Success     bool   `json:"success"`
-			Message     string `json:"message"omitempty`
+			Success bool   `json:"success"`
+			Message string `json:"message"omitempty`
 		}
 
 		var data models.User
@@ -246,7 +244,7 @@ func main() {
 		}
 
 		syncErr := utils.SyncTimetable(config, data.AccessToken, data.RefreshToken, data.Expiry, data.Email, data.CourseCode, true, data.IgnoredEvents)
-		if (syncErr != nil) {
+		if syncErr != nil {
 			response.Success = false
 			response.Message = "Failed to Sync. Error: " + syncErr.Error()
 		}
@@ -264,10 +262,10 @@ func main() {
 		id := c.Request().Header.Get("userId")
 
 		var response struct {
-			Success     bool   			`json:"success"`
-			Message     string 			`json:"message"omitempty`
-			Users       []models.CensoredUser 	`json:"users"omitempty`
-			DailySync   bool 			`json:"daily_sync"omitempty`
+			Success   bool                  `json:"success"`
+			Message   string                `json:"message"omitempty`
+			Users     []models.CensoredUser `json:"users"omitempty`
+			DailySync bool                  `json:"daily_sync"omitempty`
 		}
 
 		gUser, gErr := utils.GetGoogleUser(auth)
@@ -278,18 +276,17 @@ func main() {
 			return c.JSON(http.StatusUnauthorized, response)
 		}
 
-
 		if gUser.Email == "" || gUser.Email != email || gUser.ID != id {
 			response.Success = false
 			response.Message = "Access token doesn't match email. Try re-logging in?"
 			return c.JSON(http.StatusUnauthorized, response)
 		}
 
-		ctx := context.Background()		
+		ctx := context.Background()
 
 		var user models.User
 		var userCollection *mongo.Collection = utils.GetCollections(utils.DB, "users")
-		dbErr := userCollection.FindOne(ctx, bson.M{"email" : gUser.Email, "access_token" : auth, "google_id": id}).Decode(&user)
+		dbErr := userCollection.FindOne(ctx, bson.M{"email": gUser.Email, "access_token": auth, "google_id": id}).Decode(&user)
 		if dbErr != nil {
 			fmt.Println(dbErr)
 			response.Success = false
@@ -340,16 +337,16 @@ func main() {
 		ids, err := utils.GetAllCodes()
 
 		var response struct {
-			Success     bool   `json:"success"`
-			Message     string `json:"message"omitempty`
-			Ids     	[]string `json:"ids"omitempty`
+			Success bool     `json:"success"`
+			Message string   `json:"message"omitempty`
+			Ids     []string `json:"ids"omitempty`
 		}
 
 		if err != nil {
 			response.Success = true
 			response.Message = "Failed to get courses. Error: " + err.Error()
 			return c.JSON(http.StatusInternalServerError, response)
-		}		
+		}
 
 		response.Ids = ids
 		response.Success = true
@@ -361,16 +358,16 @@ func main() {
 		ids, err := utils.GetAllRooms()
 
 		var response struct {
-			Success     bool   `json:"success"`
-			Message     string `json:"message"omitempty`
-			Ids     	[]string `json:"ids"omitempty`
+			Success bool     `json:"success"`
+			Message string   `json:"message"omitempty`
+			Ids     []string `json:"ids"omitempty`
 		}
 
 		if err != nil {
 			response.Success = true
 			response.Message = "Failed to get rooms. Error: " + err.Error()
 			return c.JSON(http.StatusInternalServerError, response)
-		}		
+		}
 
 		response.Ids = ids
 		response.Success = true
@@ -382,16 +379,16 @@ func main() {
 		ids, err := utils.GetBuildings()
 
 		var response struct {
-			Success     bool   `json:"success"`
-			Message     string `json:"message"omitempty`
-			Ids     	[]string `json:"ids"omitempty`
+			Success bool     `json:"success"`
+			Message string   `json:"message"omitempty`
+			Ids     []string `json:"ids"omitempty`
 		}
 
 		if err != nil {
 			response.Success = true
 			response.Message = "Failed to get buildings. Error: " + err.Error()
 			return c.JSON(http.StatusInternalServerError, response)
-		}		
+		}
 
 		response.Ids = ids
 		response.Success = true
@@ -405,18 +402,18 @@ func main() {
 		roomId, err3 := utils.GetAllRooms()
 
 		var response struct {
-			Success     bool   `json:"success"`
-			Message     string `json:"message"omitempty`
-			CourseIds     	[]string `json:"course_ids"omitempty`
-			ModuleIds     	[]string `json:"module_ids"omitempty`
-			RoomIds     	[]string `json:"room_ids"omitempty`
+			Success   bool     `json:"success"`
+			Message   string   `json:"message"omitempty`
+			CourseIds []string `json:"course_ids"omitempty`
+			ModuleIds []string `json:"module_ids"omitempty`
+			RoomIds   []string `json:"room_ids"omitempty`
 		}
 
 		if err != nil || err2 != nil || err3 != nil {
 			response.Success = true
 			response.Message = "Failed to get modules and courses. Error: " + err.Error()
 			return c.JSON(http.StatusInternalServerError, response)
-		}		
+		}
 
 		response.CourseIds = courseId
 		response.ModuleIds = modId
@@ -430,8 +427,8 @@ func main() {
 		auth := c.Request().Header.Get("Authorization")
 
 		var response struct {
-			Success     bool   `json:"success"`
-			Message     string `json:"message"omitempty`
+			Success bool   `json:"success"`
+			Message string `json:"message"omitempty`
 		}
 
 		var data models.User
@@ -468,7 +465,7 @@ func main() {
 
 		userCollection := utils.GetCollections(utils.DB, "users")
 		dbErr := userCollection.FindOneAndDelete(ctx, bson.M{"email": data.Email, "access_token": data.AccessToken, "google_id": data.GoogleID, "_id": data.ID})
-		if (dbErr.Err() != nil) {
+		if dbErr.Err() != nil {
 			response.Success = false
 			response.Message = "Failed to delete. Error: " + dbErr.Err().Error()
 		}
@@ -478,11 +475,11 @@ func main() {
 		return c.JSON(http.StatusOK, response)
 	})
 
-	e.GET("/room", func (c echo.Context) error {
+	e.GET("/room", func(c echo.Context) error {
 		var response struct {
-			Success     bool   `json:"success"`
-			Message     string `json:"message"omitempty`
-			Data utils.Returnable `json:"data"`
+			Success bool             `json:"success"`
+			Message string           `json:"message"omitempty`
+			Data    utils.Returnable `json:"data"`
 		}
 
 		roomNumber := c.Request().URL.Query().Get("room")
@@ -497,18 +494,17 @@ func main() {
 			fmt.Println("Get Room Error: ", grErr)
 		}
 
-		
 		response.Success = true
 		response.Data = roomInfo
 
 		return c.JSON(http.StatusOK, response)
 	})
 
-	e.GET("/building", func (c echo.Context) error {
+	e.GET("/building", func(c echo.Context) error {
 		var response struct {
-			Success     bool   `json:"success"`
-			Message     string `json:"message"omitempty`
-			Data []utils.Returnable `json:"data"`
+			Success bool               `json:"success"`
+			Message string             `json:"message"omitempty`
+			Data    []utils.Returnable `json:"data"`
 		}
 
 		building := c.Request().URL.Query().Get("building")
@@ -519,18 +515,18 @@ func main() {
 			return c.JSON(http.StatusBadRequest, response)
 		}
 		rooms, _ := utils.GetFreeRoomsInBuilding(building, targetTime)
-		
+
 		response.Success = true
 		response.Data = rooms
 
 		return c.JSON(http.StatusOK, response)
 	})
 
-	e.GET("/building/stream", func (c echo.Context) error {
+	e.GET("/building/stream", func(c echo.Context) error {
 		var response struct {
-			Success     bool   `json:"success"`
-			Message     string `json:"message"omitempty`
-			Data []utils.Returnable `json:"data"`
+			Success bool               `json:"success"`
+			Message string             `json:"message"omitempty`
+			Data    []utils.Returnable `json:"data"`
 		}
 
 		building := c.Request().URL.Query().Get("building")
@@ -545,11 +541,11 @@ func main() {
 		return nil
 	})
 
-	e.GET("/timetable", func (c echo.Context) error {
+	e.GET("/timetable", func(c echo.Context) error {
 		var response struct {
-			Success bool `json:"success"`
-			Message string `json:"message"`
-			Events []utils.Timetable `json:"events"omitempty`
+			Success bool              `json:"success"`
+			Message string            `json:"message"`
+			Events  []utils.Timetable `json:"events"omitempty`
 		}
 
 		courseCode := c.Request().URL.Query().Get("course")
@@ -558,7 +554,7 @@ func main() {
 		from := c.Request().URL.Query().Get("from")
 		to := c.Request().URL.Query().Get("to")
 
-		var types int32;
+		var types int32
 
 		isModule := courseCode == "" && moduleCode != "" && roomCode == ""
 		isRoom := courseCode == "" && moduleCode == "" && roomCode != ""
@@ -566,7 +562,7 @@ func main() {
 			// quick fix here to avoid having to rewrite GetTimetable call
 			courseCode = moduleCode
 			types = 1
-		} else if isRoom{
+		} else if isRoom {
 			courseCode = roomCode
 			types = 2
 		} else {
@@ -590,6 +586,59 @@ func main() {
 		response.Success = true
 		response.Message = fmt.Sprintf("Fetched %d events", len(timetable))
 		return c.JSON(http.StatusOK, response)
+	})
+
+	e.GET("/status", func(c echo.Context) error {
+
+		start := time.Now()
+
+		var response struct {
+			OverallStatus bool   `json:"overall_status"`
+			Message       string `json:"message"`
+			Webservice    bool   `json:"webservice"`
+			MongoDB       bool   `json:"mongo_db"`
+			RedisCache    bool   `json:"redis_cache"`
+		}
+
+		response.Webservice = true
+
+		// checking mongo connection
+		if utils.DB == nil {
+			response.Message = "No mongo instance."
+			response.MongoDB = false
+		} else {
+			err := utils.DB.Ping(context.Background(), nil)
+
+			if err != nil {
+				response.Message = "Couldn't connect to MongoDB"
+				response.MongoDB = false
+			} else {
+				response.MongoDB = true
+			}
+		}
+
+		// checking redis connection
+
+		cachErr := utils.CheckStatus()
+		if cachErr != nil {
+			response.Message = "Couldn't connect to Redis"
+			response.RedisCache = false
+		} else {
+			response.RedisCache = true
+		}
+
+		duration := time.Since(start)
+		durationMs := float64(duration.Milliseconds())
+
+		if err == nil && cachErr == nil {
+			response.OverallStatus = true
+			response.Message = fmt.Sprintf("Everything looks good! (%.2f ms)\n", durationMs)
+			return c.JSON(http.StatusOK, response)
+
+		} else {
+			response.OverallStatus = false
+			return c.JSON(http.StatusServiceUnavailable, response)
+		}
 	})
 
 	// e.GET("/announcement", func (c echo.Context) error {
