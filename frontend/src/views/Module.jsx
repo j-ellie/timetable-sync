@@ -12,7 +12,13 @@ import {
     TableContainer,
     Button,
     Input,
+    Heading,
+    Center,
+    Flex,
+    Box,
+    useColorMode,
   } from '@chakra-ui/react'
+import { FaHome } from 'react-icons/fa';
 
 export default function Module() {
     const [ modules, setModules ] = useState([]);
@@ -28,6 +34,7 @@ export default function Module() {
         .then(data => {
             console.log(data)
             setModules(data);
+            setFilter(data)
         }).catch(err => {
             alert("Fetch Error");
             console.log(err);
@@ -36,19 +43,19 @@ export default function Module() {
     }, [])
 
     useEffect(() => {
-        setFilter(modules.slice((page * 100), (page * 100) + 100))
-
-    }, [modules, page])
-
-    useEffect(() => {
         setPage(0);
         const query = search.toLowerCase();
 
-        console.log(query)
+        if (query === "" || query === " ") {
+            setFilter(modules)
+            return;
+        }
 
-        const filtered = modules.filter(mod => {
-            mod.some(field => field.toLowerCase().includes(query))
-        })
+        const filtered = modules.filter(mod =>
+            mod.some(field =>
+                field.toString().toLowerCase().includes(query) // Ensuring field is a string
+            )
+        );
 
         setFilter(filtered)
 
@@ -67,17 +74,29 @@ export default function Module() {
         setSearch(e.target.value)
     }
 
+    const { colorMode } = useColorMode();
+
 
     return (
-        <div>
-            <Button onClick={handlePrev} isDisabled={page === 0}>Prev</Button>
-            <Button onClick={handleNext} isDisabled={filteredMods.length === 0}>Next</Button>
+        <Flex justifyContent="center" mt="2em">
+            <Button colorScheme='cyan' onClick={() => {window.location.href = "/"}} position="fixed" top={1} left={1}>
+                <FaHome />
+            </Button>
+            <Flex flexDir='column' gap="1em">
+            
+            <Heading textAlign="center">DCU Modules</Heading>
+
+            <Flex width="100%" gap="1em">
+                <Button width="50%" onClick={handlePrev} isDisabled={page === 0}>Prev</Button>
+                <Button width="50%" onClick={handleNext} isDisabled={filteredMods.slice(page * 100, (page * 100) + 100).length === 0}>Next</Button>
+            </Flex>
 
             <Input placeholder='Search for Module' onChange={handleSearchChange} />
 
-            <TableContainer>
-            <Table variant='simple'>
-                <Thead>
+            <Box>
+            <TableContainer overflowY="scroll" maxHeight="60vh">
+            <Table variant='simple' >
+                <Thead position="sticky" top={0} zIndex="1" width="100%" bgColor={colorMode === "light" ? "white" : "#1A202C"}>
                 <Tr>
                     <Th>Code</Th>
                     <Th>Old Code</Th>
@@ -85,19 +104,27 @@ export default function Module() {
                 </Tr>
                 </Thead>
                 <Tbody>
-                    {filteredMods.map(mod => (
-                        <Tr key={mod[0]}>
-                            <Td>{mod[0]}</Td>
-                            <Td>{mod[1]}</Td>
-                            <Td>{mod[2]}</Td>
-                        </Tr>
-                    ))}
+                    {filteredMods.map((mod, index) => {
+                        if (index >= page * 100 && index < (page * 100) + 100) {
+                            return (
+                                <Tr key={mod[0]} width="100%" tableLayout="fixed">
+                                    <Td>{mod[0]}</Td>
+                                    <Td>{mod[1]}</Td>
+                                    <Td>{mod[2]}</Td>
+                                </Tr>
+                            )
+                        } else {
+                            return null
+                        }
+                    })}
                 </Tbody>
                 <TableCaption>
-                    {filteredMods.length === 0 ? (<p>No modules found.</p>) : null}
+                    {filteredMods.slice(page * 100, (page * 100) + 100).length === 0 ? (<p>No modules found.</p>) : null}
                 </TableCaption>
             </Table>
             </TableContainer>
-        </div>
+            </Box>
+            </Flex>
+        </Flex>
     )
 }

@@ -25,6 +25,8 @@ function App() {
   const [isError, setError] = useState(null);
   const [data, setData] = useState(null);
 
+  const [alert, setAlert] = useState(null)
+
   const login = useGoogleLogin({
     onSuccess: codeResponse => {
       setLoading(true)
@@ -64,6 +66,19 @@ function App() {
     } else if (window.location.pathname === "/modules") {
       setShowModule(true)
     }
+
+    // fetch any active alerts
+    fetch(apiUrl + "/alerts")
+    .then(response => response.json())
+    .then(data => {
+      if (data.Active) {
+        setAlert(data.Alert)
+      }
+
+    }).catch(err => {
+      console.error("Failed to fetch alerts " + err)
+    })
+
   }, [])
 
   const {colorMode} = useColorMode();
@@ -132,11 +147,13 @@ function App() {
       {
         !isLoading && !signedIn && isError == null && !showPrivacy && !showRooms && !showViewer && !showModule ? (
           <>
-          {/* <Alert status='success'>
-            <AlertIcon />
-            <AlertTitle>Welcome Back!</AlertTitle>
-            <AlertDescription>Timetable Sync is ready to sync your timetable!</AlertDescription>
-          </Alert> */}
+            {alert ? (
+              <Alert status={alert.level}>
+                <AlertIcon />
+                <AlertTitle>{alert.title}</AlertTitle>
+                <AlertDescription>{alert.description}</AlertDescription>
+              </Alert>
+            ) : null}
             <Center height="100vh">
             <VStack m={2}>
               <Heading>Timetable Sync</Heading>
@@ -164,6 +181,16 @@ function App() {
                  }}>
                   Viewer
                   {/* <Badge colorScheme={colorMode === "light" ? 'green' : ""} ml={2}>New</Badge> */}
+                </Button>
+                <Button colorScheme="pink" onClick={() => { 
+                  setShowModule(true);
+                  const curr = new URL(window.location.href)
+                  curr.pathname = "/modules"
+                  window.history.replaceState({}, '', curr)
+
+                 }}>
+                  Modules
+                  <Badge colorScheme={colorMode === "light" ? 'green' : ""} ml={2}>New</Badge>
                 </Button>
               </Flex>
 
