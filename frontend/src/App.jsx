@@ -12,6 +12,7 @@ import Footer from './components/Footer';
 import GoogleSignin from './components/GoogleSignin';
 import Viewer from './views/Viewer'
 import ColorModeSwitch from './components/ColorModeSwitch';
+import Module from './views/Module'
 
 function App() {
   const apiUrl = import.meta.env.VITE_API_URL;
@@ -19,6 +20,7 @@ function App() {
   const [isLoading, setLoading] = useState(false);
   const [showPrivacy, setPrivacy] = useState(false);
   const [showViewer, setViewer] = useState(false);
+  const [showModule, setShowModule] = useState(false);
   const [showRooms, setRooms] = useState(false);
   const [isError, setError] = useState(null);
   const [data, setData] = useState(null);
@@ -59,6 +61,8 @@ function App() {
       setRooms(true)
     } else if (window.location.pathname === "/viewer") {
       setViewer(true)
+    } else if (window.location.pathname === "/modules") {
+      setShowModule(true)
     }
   }, [])
 
@@ -68,6 +72,13 @@ function App() {
     <>
       <div className="wrapper">
         <ColorModeSwitch />
+      
+      {
+        showModule ? (
+          <Module />
+        ) : null
+      }
+
       {
         showPrivacy ? (
           <Privacy />   
@@ -102,7 +113,7 @@ function App() {
         ) : null 
       }
       {
-        signedIn && !isLoading && isError == null && !showPrivacy && !showRooms ? (
+        signedIn && !isLoading && isError == null && !showPrivacy && !showRooms && !showModule ? (
           <Center height={["auto", "100vh"]}>
             <SignedIn setSignIn={setSignIn} data={data} /> 
             {/* <Footer /> */}
@@ -110,7 +121,7 @@ function App() {
         ) : null 
       }
       {
-        isLoading && !signedIn && isError == null && !showPrivacy && !showRooms ? (
+        isLoading && !signedIn && isError == null && !showPrivacy && !showRooms && !showModule ? (
           <Center height={["auto", "100vh"]}>
             <LoggingIn />
             {/* <Footer /> */}
@@ -119,7 +130,7 @@ function App() {
       }
 
       {
-        !isLoading && !signedIn && isError == null && !showPrivacy && !showRooms && !showViewer ? (
+        !isLoading && !signedIn && isError == null && !showPrivacy && !showRooms && !showViewer && !showModule ? (
           <>
           {/* <Alert status='success'>
             <AlertIcon />
