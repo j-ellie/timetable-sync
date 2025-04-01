@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 
 import {
     Table,
@@ -28,11 +28,13 @@ export default function Module() {
 
     const [ page, setPage ] = useState(0);
 
+    const topRef = useRef();
+
     useEffect(() => {
         fetch("/mods.json")
         .then(response => response.json())
         .then(data => {
-            console.log(data)
+            // console.log(data)
             setModules(data);
             setFilter(data)
         }).catch(err => {
@@ -63,14 +65,21 @@ export default function Module() {
 
     const handlePrev = () => {
         setPage(page - 1);
+
+        if (topRef.current) {
+            topRef.current.scrollIntoView({ behavior: "smooth" });
+        }
     }
 
     const handleNext = () => {
         setPage(page + 1);
+        
+        if (topRef.current) {
+            topRef.current.scrollIntoView({ behavior: "smooth" });
+        }
     }
 
     const handleSearchChange = (e) => {
-        console.log(e.target.value)
         setSearch(e.target.value)
     }
 
@@ -78,7 +87,8 @@ export default function Module() {
 
 
     return (
-        <Flex justifyContent="center" mt="2em">
+        <Box >
+        <Flex justifyContent="center" mt="2em" maxWidth="100%">
             <Button colorScheme='cyan' onClick={() => {window.location.href = "/"}} position="fixed" top={1} left={1}>
                 <FaHome />
             </Button>
@@ -86,17 +96,16 @@ export default function Module() {
             
             <Heading textAlign="center">DCU Modules</Heading>
 
-            <Flex width="100%" gap="1em">
-                <Button width="50%" onClick={handlePrev} isDisabled={page === 0}>Prev</Button>
-                <Button width="50%" onClick={handleNext} isDisabled={filteredMods.slice(page * 100, (page * 100) + 100).length === 0}>Next</Button>
+            <Flex width="90vw" gap="1em" >
+                <Button flex="1" onClick={handlePrev} isDisabled={page === 0}>Prev</Button>
+                <Button flex="1" onClick={handleNext} isDisabled={filteredMods.slice(page * 100, (page * 100) + 100).length === 0}>Next</Button>
             </Flex>
 
             <Input placeholder='Search for Module' onChange={handleSearchChange} />
 
-            <Box>
-            <TableContainer overflowY="scroll" maxHeight="60vh">
+            <TableContainer overflowY="scroll" overflowX="auto" maxHeight="60vh" maxWidth="90vw">
             <Table variant='simple' >
-                <Thead position="sticky" top={0} zIndex="1" width="100%" bgColor={colorMode === "light" ? "white" : "#1A202C"}>
+                <Thead position="sticky" top={0} zIndex="1" bgColor={colorMode === "light" ? "white" : "#1A202C"}>
                 <Tr>
                     <Th>Code</Th>
                     <Th>Old Code</Th>
@@ -104,10 +113,11 @@ export default function Module() {
                 </Tr>
                 </Thead>
                 <Tbody>
+                    <p ref={topRef}></p>
                     {filteredMods.map((mod, index) => {
                         if (index >= page * 100 && index < (page * 100) + 100) {
                             return (
-                                <Tr key={mod[0]} width="100%" tableLayout="fixed">
+                                <Tr key={mod[0]} tableLayout="fixed">
                                     <Td>{mod[0]}</Td>
                                     <Td>{mod[1]}</Td>
                                     <Td>{mod[2]}</Td>
@@ -123,8 +133,8 @@ export default function Module() {
                 </TableCaption>
             </Table>
             </TableContainer>
-            </Box>
             </Flex>
         </Flex>
+        </Box>
     )
 }
