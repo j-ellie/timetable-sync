@@ -1,0 +1,6 @@
+{
+    "active": false,
+    "level": "warning",
+    "title": "Degraded Performance",
+    "description": "Due to high response times on the DCU timetable service, Timetable Sync may be unavailable."
+}

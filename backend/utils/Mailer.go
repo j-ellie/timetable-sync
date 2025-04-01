@@ -18,13 +18,13 @@ func SendMail(subject string, toName string, toAddress string, plainContent stri
 	client := sendgrid.NewSendClient(os.Getenv("SENDGRID_API_KEY"))
 	_, err := client.Send(message)
 	if err != nil {
-        fmt.Println(err)
+		fmt.Println(err)
 		return false, err
-    } else {
-        // fmt.Println(response.StatusCode)
-        // fmt.Println(response.Headers)
+	} else {
+		// fmt.Println(response.StatusCode)
+		// fmt.Println(response.Headers)
 		return true, nil
-    }
+	}
 }
 
 func SendWelcome(data models.User) error {
@@ -46,7 +46,6 @@ func SendWelcome(data models.User) error {
 	formattedString = strings.Replace(formattedString, "%FREQUENCY%", data.SyncTime, 1)
 	formattedString = strings.Replace(formattedString, "%EMAILNOTI%", emailNotifications, 1)
 
-
 	SendMail("Welcome to Timetable Sync", data.FirstName, data.Email, " ", string(formattedString))
 	// fmt.Println(success)
 	// fmt.Println(err2)
@@ -67,7 +66,7 @@ func SendWelcomeBack(data models.User) error {
 	// formattedString = strings.Replace(formattedString, "%EMAILNOTI%", emailNotifications, 1)
 
 	SendMail("Update your course on TimetableSync", data.FirstName, data.Email, " ", string(formattedString))
-	
+
 	return nil
 }
 
@@ -77,11 +76,13 @@ func SendUpdate(data models.User, timetableStruct []Timetable) error {
 		return err
 	}
 
+	loc, _ := time.LoadLocation("Europe/Dublin")
+
 	var timetableString string
 
 	for _, t := range timetableStruct {
 		if isToday(t.StartDateTime) {
-			addition := fmt.Sprintf("• %s - %s - %02d:%02d -> %02d:%02d", t.Name, t.Location, t.StartDateTime.Hour(), t.StartDateTime.Minute(), t.EndDateTime.Hour(), t.EndDateTime.Minute())
+			addition := fmt.Sprintf("• %s - %s - %02d:%02d -> %02d:%02d", t.Name, t.Location, t.StartDateTime.In(loc).Hour(), t.StartDateTime.In(loc).Minute(), t.EndDateTime.In(loc).Hour(), t.EndDateTime.In(loc).Minute())
 			timetableString = timetableString + addition + "\n"
 		}
 	}
@@ -99,7 +100,7 @@ func SendUpdate(data models.User, timetableStruct []Timetable) error {
 
 	currentTime := time.Now()
 	date := fmt.Sprintf("%02d/%02d/%d", currentTime.Day(), currentTime.Month(), currentTime.Year())
-	SendMail("Your timetable for " + date, data.FirstName, data.Email, " ", string(formattedString))
+	SendMail("Your timetable for "+date, data.FirstName, data.Email, " ", string(formattedString))
 	// fmt.Println(success)
 	// fmt.Println(err2)
 
@@ -154,7 +155,7 @@ func SendUpdateReport(startTime time.Time, syncInfo string, report string) error
 	formattedString = strings.Replace(formattedString, "%REPORT%", report, 1)
 
 	date := fmt.Sprintf("%02d/%02d/%d", currentTime.Day(), currentTime.Month(), currentTime.Year())
-	SendMail("Global sync report for " + date, "tsadmin", "james@jamesz.dev", " ", string(formattedString))
+	SendMail("Global sync report for "+date, "tsadmin", "james@jamesz.dev", " ", string(formattedString))
 
 	return nil
 }

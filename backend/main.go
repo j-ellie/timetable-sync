@@ -641,6 +641,29 @@ func main() {
 		}
 	})
 
+	e.GET("/alerts", func(c echo.Context) error {
+		var response struct {
+			Active bool        `json:"active`
+			Alert  utils.Alert `json:"alert`
+		}
+
+		alert, err := utils.ReadAlert()
+
+		if err != nil {
+			response.Active = false
+			response.Alert = utils.Alert{}
+
+			fmt.Println("Failed getting alert: ", err)
+
+			return c.JSON(http.StatusOK, response)
+		}
+
+		response.Active = alert.Active
+		response.Alert = alert
+
+		return c.JSON(http.StatusOK, response)
+	})
+
 	// e.GET("/announcement", func (c echo.Context) error {
 	// 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	// 	defer cancel()
