@@ -47,6 +47,10 @@ var Cache *redis.Client = ConnectCache()
 
 func CheckCache(roomId string, targetTime time.Time) ([]RawEvent, error) {
 	name := fmt.Sprintf("%s:%s", roomId, targetTime.Format("2006-01-02"))
+	if Cache == nil {
+		fmt.Println("[Cache] Cache is nil, ignoring...")
+		return nil, fmt.Errorf("Connection to Cache is nil, continuing")
+	}
 	cached, err := Cache.Get(ctx, name).Result()
 	if err == redis.Nil {
 		fmt.Println("[Cache] >> " + roomId + " not cached.")
@@ -88,6 +92,11 @@ func CacheRooms(roomId string, date time.Time, events []RawEvent) error {
 	name := fmt.Sprintf("%s:%s", roomId, date.Format("2006-01-02"))
 
 	expiry := time.Hour * 2
+
+	if Cache == nil {
+		fmt.Println("[Cache] Cache is nil, ignoring...")
+		return nil
+	}
 
 	err := Cache.Set(ctx, name, formatted, expiry).Err()
 	if err != nil {

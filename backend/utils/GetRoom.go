@@ -1,6 +1,7 @@
 package utils
 
 import (
+	localcache "TimetableSync/cache"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -9,42 +10,42 @@ import (
 	"sort"
 	"strings"
 	"time"
-	localcache "TimetableSync/cache"
 
 	"github.com/labstack/echo/v4"
 )
 
 type Room struct {
-	Name string `json:"name"`
-	ID string `json:"id"`
-	Available bool `json:"available"`
+	Name      string `json:"name"`
+	ID        string `json:"id"`
+	Available bool   `json:"available"`
 }
 
 type Event struct {
-	Began time.Time `json:"began"`
-	Ends time.Time `json:"ends"`
-	Description string `json:"description"`
-	Module string `json:"module"`
+	Began       time.Time `json:"began"`
+	Ends        time.Time `json:"ends"`
+	Description string    `json:"description"`
+	Module      string    `json:"module"`
 }
 
 type RawEvent struct {
-	Began time.Time `json:"began"`
-	Ends time.Time `json:"ends"`
-	EventName string `json:"event_name"`
-	Module string `json:"module"`
+	Began     time.Time `json:"began"`
+	Ends      time.Time `json:"ends"`
+	EventName string    `json:"event_name"`
+	Module    string    `json:"module"`
 }
 
 type Returnable struct {
-	RoomID string `json:"id"`
-	Available bool `json:"available"`
-	Until time.Time `json:"until"`
-	OccupiedBy Event `json:"occupiedBy"`
-	NextEvent Event `json:"nextEvent"`
+	RoomID     string    `json:"id"`
+	Available  bool      `json:"available"`
+	Until      time.Time `json:"until"`
+	OccupiedBy Event     `json:"occupiedBy"`
+	NextEvent  Event     `json:"nextEvent"`
+	Cached     bool      `json:"cached"`
 }
 
 func getTodayTime() (time.Time, time.Time) {
 	currentTime := time.Now().AddDate(0, 0, 5)
-	tomorrow := currentTime.AddDate(0,0,1)
+	tomorrow := currentTime.AddDate(0, 0, 1)
 	return currentTime, tomorrow
 }
 
@@ -59,7 +60,7 @@ func GetRoomId(roomStr string) (string, string, error) {
 	return "", "", fmt.Errorf("Course not found.")
 }
 
-func GetRoom(targetRoom string, targetTime string) (Returnable, error){
+func GetRoom(targetRoom string, targetTime string) (Returnable, error) {
 	fmt.Println(targetRoom, ">> Getting room status started...")
 
 	// parseTimeFormat := "Mon Jan 02 2006 @ 15:04:05" old format
@@ -81,7 +82,7 @@ func GetRoom(targetRoom string, targetTime string) (Returnable, error){
 	var rawResults []RawEvent
 
 	returnableRoom := Returnable{
-		RoomID: targetRoom,
+		RoomID:    targetRoom,
 		Available: true,
 	}
 
@@ -92,6 +93,7 @@ func GetRoom(targetRoom string, targetTime string) (Returnable, error){
 		// present in the cache
 		rawResults = cache
 		fmt.Println("Using Cache")
+		returnableRoom.Cached = true
 	} else {
 		// not cached or it errored
 		fmt.Println("Not using Cache")
@@ -109,8 +111,7 @@ func GetRoom(targetRoom string, targetTime string) (Returnable, error){
 			return Returnable{}, fmt.Errorf("Room does not exist.")
 		}
 
-		
-		url := "https://scientia-eu-v4-api-d1-03.azurewebsites.net/api/Public/CategoryTypes/Categories/Events/Filter/a1fdee6b-68eb-47b8-b2ac-a4c60c8e6177" + "?startRange="+ cacheTime.Format(timeFormat) + "&endRange=" + cacheTime.AddDate(0, 0, 1).Format(timeFormat)
+		url := "https://scientia-eu-v4-api-d1-03.azurewebsites.net/api/Public/CategoryTypes/Categories/Events/Filter/a1fdee6b-68eb-47b8-b2ac-a4c60c8e6177" + "?startRange=" + cacheTime.Format(timeFormat) + "&endRange=" + cacheTime.AddDate(0, 0, 1).Format(timeFormat)
 
 		requestBody := map[string]interface{}{
 			"ViewOptions": map[string]interface{}{
@@ -174,7 +175,6 @@ func GetRoom(targetRoom string, targetTime string) (Returnable, error){
 
 		defer resp.Body.Close()
 
-
 		// Decode the response JSON
 		var data map[string]interface{}
 		err = json.NewDecoder(resp.Body).Decode(&data)
@@ -182,7 +182,6 @@ func GetRoom(targetRoom string, targetTime string) (Returnable, error){
 			fmt.Println("Error decoding JSON:", err)
 			return Returnable{}, err
 		}
-
 
 		categoryEvents, ok := data["CategoryEvents"].([]interface{})
 		if !ok || len(categoryEvents) == 0 {
@@ -237,15 +236,14 @@ func GetRoom(targetRoom string, targetTime string) (Returnable, error){
 			}
 
 			newEvent := RawEvent{
-				Began: startTime,
-				Ends: endTime,
+				Began:     startTime,
+				Ends:      endTime,
 				EventName: eventName,
-				Module: moduleName,
+				Module:    moduleName,
 			}
 
 			rawResults = append(rawResults, newEvent)
 		}
-
 
 		sort.SliceStable(rawResults, func(i, j int) bool {
 			return rawResults[i].Began.Before(rawResults[j].Began)
@@ -266,7 +264,7 @@ func GetRoom(targetRoom string, targetTime string) (Returnable, error){
 			returnableRoom.OccupiedBy.Ends = endTime
 			returnableRoom.OccupiedBy.Module = eventName
 			nextComplete = false
-		} else if (!nextComplete && startTime.After(parsedTime)) {
+		} else if !nextComplete && startTime.After(parsedTime) {
 			returnableRoom.NextEvent.Began = startTime
 			returnableRoom.NextEvent.Ends = endTime
 			returnableRoom.NextEvent.Description = moduleName
@@ -281,7 +279,6 @@ func GetRoom(targetRoom string, targetTime string) (Returnable, error){
 	}
 	fmt.Println(targetRoom, ">> Getting room status complete.")
 
-
 	if cache == nil {
 		fmt.Println(targetRoom, ">> Caching...")
 		cacheErr = CacheRooms(targetRoom, cacheTime, rawResults)
@@ -290,14 +287,11 @@ func GetRoom(targetRoom string, targetTime string) (Returnable, error){
 		}
 	}
 
-	
-
 	return returnableRoom, nil
 }
 
 func GetFreeRoomsInBuilding(buildingName string, targetTime string) ([]Returnable, error) {
 	rooms := localcache.GetRooms()
-
 
 	var returnables []Returnable
 	for _, room := range rooms {
@@ -319,7 +313,7 @@ func StreamGetFreeRoomsInBuilding(c echo.Context, buildingName string, targetTim
 	c.Response().Header().Set(echo.HeaderCacheControl, "no-cache")
 	c.Response().Header().Set(echo.HeaderConnection, "keep-alive")
 	c.Response().Header().Set("X-Accel-Buffering", "no")
-    c.Response().WriteHeader(http.StatusOK)
+	c.Response().WriteHeader(http.StatusOK)
 
 	var response struct {
 		Data Returnable `json:"data"`
@@ -347,7 +341,7 @@ func StreamGetFreeRoomsInBuilding(c echo.Context, buildingName string, targetTim
 				buffer.WriteString("data:")
 				buffer.Write(data)
 				buffer.WriteString("\n\n")
-				
+
 				c.Response().Write(buffer.Bytes())
 				c.Response().Flush()
 			}
@@ -368,7 +362,7 @@ func GetAllRooms() ([]string, error) {
 
 	var ids []string
 	for _, room := range rooms {
-		ids = append(ids, room.ID + " - " + room.FriendlyName)
+		ids = append(ids, room.ID+" - "+room.FriendlyName)
 	}
 	return ids, nil
 }
